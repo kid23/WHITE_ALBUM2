@@ -1,0 +1,33 @@
+endian big
+math EBOOT_OFFET = 0x10000
+
+get MAGIC long
+if MAGIC != 0x7F454C46
+	print "Not eboot.elf."
+	cleanexit
+endif
+
+goto 0x0x10765C
+Do
+	SavePos index
+	get nameOffset long
+	if nameOffset == 0
+		CleanExit 
+	endif
+	get dataOffset long
+	get decompressSize long
+	get blockSize long
+
+	math nameOffset -= EBOOT_OFFET 
+	goto nameOffset
+	get fileName string
+	
+	string n p= "%s" fileName 
+	string name = "eboot/"
+	string name += n
+	string name += ".elzma"
+	math dataOffset -= EBOOT_OFFET 
+	log name dataOffset blockSize 
+	math index += 0x10
+	goto index
+While 1 == 1

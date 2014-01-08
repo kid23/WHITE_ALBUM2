@@ -1,0 +1,25 @@
+﻿get null long
+get part long
+get files long //0xb71
+goto 0x10
+
+for i = 0 < files
+	get size long
+	get zsize long
+	get offset longlong
+	getdstring null3 0x10
+	
+	get name filename
+	string name += _unpacked/
+	string test p= "%05d" i
+	string name += test
+	
+	if zsize == 0
+		string name += .at3
+		log name offset size
+	else
+		string name += .elz
+		log name offset zsize
+	endif
+
+next i
