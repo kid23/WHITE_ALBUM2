@@ -1,0 +1,28 @@
+endian big
+math HEAD_OFFET = 0x18
+
+get magic long
+get null1 longlong
+get size long
+get null2 long
+get data_offset long
+get files long
+
+get name filename
+
+math files *= 4
+math data_offset += HEAD_OFFET
+math data_offset += 4
+math data_offset += files 
+goto data_offset 
+
+#for i = 0 < files
+        get file_magic long
+	if file_magic = 0x20101FF
+		string name += "_0.gtf"
+	else
+		print "Unknow format."
+		cleanexit
+	endif
+        log name data_offset size 
+#next i

@@ -22,5 +22,8 @@ set DIR_BUILD=%WORK_SPACE%\build
 set DIR_SCRIPT=%WORK_SPACE%\script
 set DIR_OUTPUT=%WORK_SPACE%\output
 set DIR_IMAGE=%WORK_SPACE%\images
+set DIR_PYTHON=D:\Python27
+set DIR_PERL=D:\Perl\bin
+set DIR_TEMP=..\temp
 
 @echo on
