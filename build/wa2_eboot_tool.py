@@ -17,7 +17,10 @@ LZMA_PAD = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
 def compress(buf, size, out):
     remain = size
     pos = 0
+    comp_size = 0
+    num_blocks = 0
     while remain > 0 :
+        num_blocks += 1
         if remain > UNCOMP_BLOCK_SIZE :
             #print 'compress0 %d' % UNCOMP_BLOCK_SIZE
             head = struct.pack("I", UNCOMP_BLOCK_SIZE)
@@ -32,12 +35,14 @@ def compress(buf, size, out):
             remain -= remain
         dst = pylzma.compress(block, dictionary=14, eos=0)[5:]
         head += struct.pack("I8s", len(dst), "\x5d\x00\x40\x00\x00\x00\x00\x00")
-    out.write(head+dst)
-    pad = len(head+dst)+0xf
-    pad = pad / 0x10*0x10 - pad
-    if (pad > 0) :
-        out.write(LZMA_PAD[0:pad])
-    print "write pad %d." % pad           
+        out.write(head+dst)
+        pad = len(head+dst)
+        comp_size += pad
+        pad = (pad + 0xf) / 0x10 * 0x10 - pad
+        if (pad > 0) :
+            out.write(LZMA_PAD[0:pad])
+            comp_size += pad
+    print "compress %d->%d, block %d." % (size, comp_size, num_blocks)
 
 def decompress_block(params, block, out, size):
     block = params + block
@@ -96,6 +101,8 @@ if __name__ == "__main__":
         compress(buf, size, open("dump", "wb+"))
     elif sys.argv[1] == '-d':
         decompress(buf, 0, size, open(sys.argv[3], "wb+"))
+    elif sys.argv[1] == '-c':
+        compress(buf, size, open(sys.argv[3], "wb+"))
     else:
         print 'Bad argv.'
     os.close(fd)
