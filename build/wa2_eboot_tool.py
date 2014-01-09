@@ -1,5 +1,7 @@
 #For WHITE ALBUM2 PS3 File Script
 #By KiD
+#Ref: http://blog.lse.epita.fr/articles/8-static-analysis-of-an-unknown-compression-format.html
+
 
 import mmap
 import os
@@ -17,13 +19,13 @@ def compress(buf, size, out):
     pos = 0
     while remain > 0 :
         if remain > UNCOMP_BLOCK_SIZE :
-            print 'compress0 %d' % UNCOMP_BLOCK_SIZE
+            #print 'compress0 %d' % UNCOMP_BLOCK_SIZE
             head = struct.pack("I", UNCOMP_BLOCK_SIZE)
             block = buf[pos:pos+UNCOMP_BLOCK_SIZE]
             pos += UNCOMP_BLOCK_SIZE
             remain -= UNCOMP_BLOCK_SIZE
         else:
-            print 'compress1 %d' % remain
+            #print 'compress1 %d' % remain
             head = struct.pack("I", remain)
             block = buf[pos:pos+remain]
             pos += remain
@@ -42,16 +44,21 @@ def decompress_block(params, block, out, size):
     out.write(pylzma.decompress(block, size, maxlength=size))
 
 def decompress(buf, uncomp_size, block_size, out):
-    num_blocks = (uncomp_size + 0xFFFF) / UNCOMP_BLOCK_SIZE
-    print "block %d. %d" % (num_blocks, uncomp_size)
+    if (uncomp_size == 0) :
+        num_blocks = 999
+    else :
+        num_blocks = (uncomp_size + 0xFFFF) / UNCOMP_BLOCK_SIZE
+    #print "block %d. %d" % (num_blocks, uncomp_size)
     pos = 0
     for i in xrange(num_blocks):
         block_uncomp_size, block_comp_size = struct.unpack("<II", buf[pos:pos+8])
-        print "block %x  %x" % (block_uncomp_size, block_comp_size)
+        #print "block %x  %x" % (block_uncomp_size, block_comp_size)
         lzma_params = buf[pos+8:pos+13]
         decompress_block(lzma_params, buf[pos+0x10:pos+0x10+block_comp_size], out, block_uncomp_size)
         pos += (block_comp_size + 0x1f) / 0x10 * 0x10
-     	#print "next block %x." % pos
+        #print "next block %x." % pos
+        if (uncomp_size == 0 and pos >= block_size) :
+     	    break;
 
 def extract(buf):
     pos = WA2_EBOOT101_INDEX
@@ -59,7 +66,7 @@ def extract(buf):
         name_offset, data_offset, uncomp_size, block_size = struct.unpack(">4I", buf[pos:pos+0x10])
         if name_offset == 0 : 
           break
-        print "%x %x, %x->%x" % (name_offset, data_offset, uncomp_size, block_size)
+        #print "%x %x, %x->%x" % (name_offset, data_offset, uncomp_size, block_size)
         cpos = name_offset-EBOOT_OFFSET
         name = struct.unpack("<1s", buf[cpos:cpos+1])[0]
         while True:
@@ -88,7 +95,7 @@ if __name__ == "__main__":
     elif sys.argv[1] == '-i':
         compress(buf, size, open("dump", "wb+"))
     elif sys.argv[1] == '-d':
-        decompress(buf, 0, size, open("dump", "wb+"))
+        decompress(buf, 0, size, open(sys.argv[3], "wb+"))
     else:
         print 'Bad argv.'
     os.close(fd)
