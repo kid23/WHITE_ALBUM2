@@ -44,26 +44,45 @@ def compress(buf, size, out):
             comp_size += pad
     print "compress %d->%d, block %d." % (size, comp_size, num_blocks)
 
-def decompress_block(params, block, out, size):
+def decompress_block(params, block, size):
     block = params + block
-    out.write(pylzma.decompress(block, size, maxlength=size))
+    return (pylzma.decompress(block, size, maxlength=size))
 
-def decompress(buf, uncomp_size, block_size, out):
+def decompress(buf, uncomp_size, block_size):
+    name = sys.argv[3]
     if (uncomp_size == 0) :
         num_blocks = 999
     else :
         num_blocks = (uncomp_size + 0xFFFF) / UNCOMP_BLOCK_SIZE
     #print "block %d. %d" % (num_blocks, uncomp_size)
     pos = 0
+    data = ""
     for i in xrange(num_blocks):
         block_uncomp_size, block_comp_size = struct.unpack("<II", buf[pos:pos+8])
         #print "block %x  %x" % (block_uncomp_size, block_comp_size)
         lzma_params = buf[pos+8:pos+13]
-        decompress_block(lzma_params, buf[pos+0x10:pos+0x10+block_comp_size], out, block_uncomp_size)
+        data += decompress_block(lzma_params, buf[pos+0x10:pos+0x10+block_comp_size], block_uncomp_size)
+        #out.write(data)
+        if ( i == 0) :
+            magic1, magic2,magic3, magic4 = struct.unpack("<IIII", data[0:0x10])
+            if (magic1 == 0x67452301 and magic2 == 0x3333333F) :
+                name += ".eg"
+            elif (magic1 == 0xFF010102) :
+                name += ".gtf"
+            else:
+                #print "%x %x %x %x" % (magic1, magic2,magic3, magic4)
+                name += ".unknown"
         pos += (block_comp_size + 0x1f) / 0x10 * 0x10
         #print "next block %x." % pos
         if (uncomp_size == 0 and pos >= block_size) :
      	    break;
+    out = open(name, "wb+")
+    out.write(data)
+    print "decompress %s  %d(%d,%d)" % (name, len(data), uncomp_size, num_blocks)
+    
+
+def import_to_eboot(buf):
+    print "Not yet"
 
 def extract(buf):
     pos = WA2_EBOOT101_INDEX
@@ -98,9 +117,9 @@ if __name__ == "__main__":
     if sys.argv[1] == '-e':
         extract(buf)
     elif sys.argv[1] == '-i':
-        compress(buf, size, open("dump", "wb+"))
+        import_to_eboot(buf)
     elif sys.argv[1] == '-d':
-        decompress(buf, 0, size, open(sys.argv[3], "wb+"))
+        decompress(buf, 0, size)
     elif sys.argv[1] == '-c':
         compress(buf, size, open(sys.argv[3], "wb+"))
     else:
