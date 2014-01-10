@@ -68,6 +68,10 @@ def decompress(buf, uncomp_size, block_size, name, autoname = 0):
                 name += ".eg"
             elif (magic1 == 0xFF010102) :
                 name += ".gtf"
+            elif (magic1 == 0x53414E49) :
+                name += ".inas"
+            elif (magic1 > 0 and magic2 == 0 and magic3 == 0 and magic4 == 0) :
+                name += ".ddspkg"
             else:
                 #print "%x %x %x %x" % (magic1, magic2,magic3, magic4)
                 name += ".unknown"
