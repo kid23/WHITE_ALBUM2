@@ -1,7 +1,13 @@
-echo off
+@echo off
 
-for %%i in ("E:\wa\PS3_Projects\WHITE_ALBUM2\build\data.dar_unpacked\*.gtf") do (
+IF [%1]==[] (
+	@echo Bad argv.
+	@echo %0 ^<dir^>
+	exit /b
+)
+
+for %%i in ("%1\*.gtf") do (
 @echo %%i
-..\binary\gtf2dds.exe "%%i" -o "%%i.dds"
+..\..\tools\gtf2dds.exe "%%i" -o "%%~dpni.dds"
 )
 pause
