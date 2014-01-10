@@ -1,0 +1,13 @@
+get files long
+getdstring null 12
+
+for i = 0 < files
+    get offset long
+    get size long
+	getdstring null 8
+    get name filename
+    string num p= "_%03d" i
+    string name += num
+    string name += ".gtf"    
+    log name offset size 
+next i
