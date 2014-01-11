@@ -7,7 +7,7 @@ IF [%1]==[] (
 	exit /b
 )
 
-set EXTNAME=".ddspkg"
+set EXTNAME=".pkgdds"
 for %%i in ("%1\*%EXTNAME%") do (
 ..\binary\quickbms.exe extract_ddspack.bms "%%i" %1
 )

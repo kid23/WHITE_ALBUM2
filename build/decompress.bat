@@ -12,4 +12,3 @@ path %PATH%;%DIR_PYTHON%
 for %%i in ("%1\*%EXTNAME%") do (
 python wa2_eboot_tool.py -d "%%i" "%%~dpni"
 )
-pause
