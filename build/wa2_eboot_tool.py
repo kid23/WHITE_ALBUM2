@@ -116,7 +116,6 @@ def import_to_eboot(buf, dir):
             data = fd.read()
             file_comp_size = len(data) - 4
             file_uncomp_size, = struct.unpack("1I", data[0:4])
-            #ret = compress(data, file_size)
             if (file_comp_size <= total_block) :
                 buf[pos+8:pos+0x10] = struct.pack(">2I", file_uncomp_size, file_comp_size)
                 buf[data_offset-EBOOT_OFFSET:data_offset-EBOOT_OFFSET+file_comp_size] = data[4:]
@@ -125,7 +124,6 @@ def import_to_eboot(buf, dir):
                 print "Import error. %d,%d < %d,%d  %x, %s" % (uncomp_size, block_size, file_uncomp_size, file_comp_size, pos, name)
                 
             fd.close()
-        #decompress(buf[data_offset-EBOOT_OFFSET:data_offset-EBOOT_OFFSET+block_size], uncomp_size, block_size, outputdir + "/eboot/"+name)
         pos += 0x10
 
 
