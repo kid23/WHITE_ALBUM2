@@ -18,7 +18,6 @@ move ..\temp\data.dar_unpacked\*.eg ..\temp\data.dar_unpacked\eg
 move ..\temp\data.dar_unpacked\*.gtf ..\temp\data.dar_unpacked\gtf
 
 call unpack_ddspkg.bat ..\temp\data.dar_unpacked\ddspkg
-call convert_dds.bat ..\temp\data.dar_unpacked\ddspkg
 call convert_png.bat %DIR_TEMP%\data.dar_unpacked\ddspkg
 
 rem call unpack_eg.bat ..\temp\data.dar_unpacked\eg
