@@ -7,22 +7,31 @@ import struct
 import sys
 import codecs
 
+def convert2unicode(buf, size, name):
+    out = codecs.open(name, "wb+", encoding="utf-16")
+    out.write(unicode(buf,'cp932'))
+    out.close()
+
 def make_tbl(buf, size, name):
     cur = 0
-    out = codecs.open(name, "wb+", encoding="utf-16")
-    #out = open(name, "wb+")
+    tbl_file = codecs.open(name + ".tbl", "wb+", encoding="utf-16")
+    txt_file = codecs.open(name + ".txt", "wb+", encoding="utf-16")
     cnt = 0
     while cur < size :
         t1 = struct.unpack("<B", buf[cur:cur+1])
         t2 = struct.unpack("<B", buf[cur+1:cur+2])
         if (t1[0] < 0x80) :
             code = "%x=%c\r\n" % (t1[0], buf[cur:cur+1])
+            txt = buf[cur:cur+1]
         else:
             code = "%x%x=%s\r\n" % (t1[0], t2[0], buf[cur:cur+2])
-        out.write(unicode(code,'cp932'))
+            txt = buf[cur:cur+2]
+        tbl_file.write(unicode(code,'cp932'))
+        txt_file.write(unicode(txt,'cp932'))
         cur += 2
         cnt += 1
-    out.close()
+    tbl_file.close()
+    txt_file.close()
     print "Total %d char." % cnt
 
 if __name__ == "__main__":
