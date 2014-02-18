@@ -94,7 +94,6 @@ void Paint_WA2(WCHAR* fontname, WCHAR* filename, const int TextureWidth, const i
 	g1.SetTextRenderingHint(TextRenderingHintAntiAlias);
 	wprintf(L"begin\n");
 
-	do
 	{
 		float x = 0.0f;
 		float y = 0.0f;
@@ -109,7 +108,8 @@ void Paint_WA2(WCHAR* fontname, WCHAR* filename, const int TextureWidth, const i
 			x = 0.0f;
 		}
 
-	} while (it != wa2_tbl.end());
+	} 
+	if (it != wa2_tbl.end()) { wprintf(L"Make Font error. %d ok\n", it - wa2_tbl.begin()); return; }
 	CLSID pngClsid;
 	GetEncoderClsid(L"image/png", &pngClsid);
 	bitmap1.Save(filename, &pngClsid);
