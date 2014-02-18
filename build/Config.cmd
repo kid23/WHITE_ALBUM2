@@ -24,6 +24,6 @@ set DIR_OUTPUT=%WORK_SPACE%\output
 set DIR_IMAGE=%WORK_SPACE%\images
 set DIR_PYTHON=D:\Python27
 set DIR_PERL=D:\Perl\bin
-set DIR_TEMP=..\temp
+set DIR_TEMP=%WORK_SPACE%\temp
 
 @echo on
