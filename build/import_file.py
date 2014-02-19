@@ -1,27 +1,26 @@
 #For WHITE ALBUM2 PS3 File Script
 #By KiD
 
-import os
 import struct
 import sys
-import glob
+import zipfile
 
-def import_dar(name, dir):
+def import_dar(name, zipname):
 	fd = open(name,"rb+")
 	head = fd.read(0x10+0xb71*0x20)
 	if (head[0:2] != "\xac\x0d" or head[8:10] != "\x71\x0b") :
 		print "Bad dar file."
 		fd.close()
 		return
-	for filename in glob.glob(dir + "/*.elzma"):
-		num = int(os.path.basename(filename).split('.', 1)[0])
+		
+	filezip = zipfile.ZipFile(zipname, "r")
+	for entry in filezip.infolist():
+		num = int(entry.filename.split('.', 1)[0])
 		size, zsize, offset = struct.unpack("LLQ", head[0x10+num*0x20:0x10+num*0x20+0x10])
-		filesize = os.path.getsize(filename)
-		file = open(filename, "rb")
-		data = file.read()
-		file_comp_size = len(data) - 4
-		file_uncomp_size, = struct.unpack("1I", data[0:4])
-		if (file_comp_size <= zsize) :
+		if (entry.file_size - 4 <= zsize) :
+			data = filezip.read(entry.filename)
+			file_comp_size = len(data) - 4
+			file_uncomp_size, = struct.unpack("1I", data[0:4])
 			fd.seek(offset, 0)
 			fd.write(data[4:])
 			buf = struct.pack("LL", file_uncomp_size, file_comp_size)
@@ -29,7 +28,7 @@ def import_dar(name, dir):
 			print "Import %d ok %d,%d -> %d,%d" % (num, size, zsize, file_uncomp_size, file_comp_size)
 		else:
 			print "Import %d error. %d,%d < %d,%d" % (num, size, zsize, file_uncomp_size, file_comp_size)
-		file.close()
+
 	fd.seek(0,0)
 	fd.write(head)
 	fd.close()
