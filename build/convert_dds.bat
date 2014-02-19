@@ -10,4 +10,3 @@ for %%i in ("%1\*.gtf") do (
 @echo %%i
 ..\..\tools\gtf2dds.exe "%%i" -o "%%~dpni.dds"
 )
-pause

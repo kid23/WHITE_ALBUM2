@@ -12,4 +12,3 @@ for %%i in ("%1\*%EXTNAME%") do (
 ..\binary\quickbms.exe extract_ddspack.bms "%%i" %1
 )
 convert_dds.bat %1
-pause

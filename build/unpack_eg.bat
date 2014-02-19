@@ -12,4 +12,3 @@ for %%i in ("%1\*%EXTNAME%") do (
 ..\binary\quickbms.exe extract_eg.bms "%%i" %1
 ..\..\tools\gtf2dds.exe "%%i_0.gtf" -o "%%i_0.gtf.dds"
 )
-pause

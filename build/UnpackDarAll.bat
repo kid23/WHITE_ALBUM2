@@ -24,3 +24,5 @@ rem call unpack_eg.bat ..\temp\data.dar_unpacked\eg
 rem call convert_dds.bat ..\temp\data.dar_unpacked\eg
 
 rem call convert_dds.bat ..\temp\data.dar_unpacked\gtf
+
+pause
