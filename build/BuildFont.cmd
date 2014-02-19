@@ -9,5 +9,10 @@ move font3.png "%DIR_TEMP%\font\02309.pkgdds_002.png"
 ..\..\3rd\nvtt\nvcompress.exe -nomips -nocuda -rgb8 "%DIR_TEMP%\font\02309.pkgdds_002.png"
 "%PS3_TOOL%\dds2gtf.exe" "%DIR_TEMP%\font\02309.pkgdds_000.dds"
 "%PS3_TOOL%\dds2gtf.exe" "%DIR_TEMP%\font\02309.pkgdds_002.dds"
-
+python import_file.py -ip "%DIR_TEMP%\font\02309.pkgdds"
+call compress.bat "%DIR_TEMP%\font\" pkgdds
+for /f "delims=" %%i in ("%DIR_TEMP%\font\02309.pkgdds") do (
+set lzname=%%~ni
+copy "%DIR_TEMP%\font\02309.pkgdds.elzma" "%DIR_OUTPUT%\dar\%lzname:~0,5%.elzma"
+)
 pause
