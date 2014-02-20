@@ -29,7 +29,7 @@ def import_dar(name, zipdata):
 			head = head[0:0x10+num*0x20] + buf + head[0x10+num*0x20+8:]
 			print "Import %d ok %d,%d -> %d,%d" % (num, size, zsize, file_uncomp_size, file_comp_size)
 		else:
-			print "Import %d error. %d,%d < %d,%d" % (num, size, zsize, file_uncomp_size, file_comp_size)
+			print "Import %d error. %d < %d" % (num, zsize, entry.file_size - 4)
 	filezip.close()
 	fd.seek(0,0)
 	fd.write(head)
