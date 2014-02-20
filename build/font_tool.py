@@ -59,6 +59,7 @@ def replace_txt(txtname,TBL,MISSED):
             if TBL.has_key(char) :
                 buf[cur:cur+2] = struct.pack(">H", TBL[char])
             else :
+                buf[cur:cur+2] = struct.pack(">H", TBL[u'\u3000'])
                 left += 1
                 MISSED.add(char)
             cur += 2
@@ -72,6 +73,7 @@ def replace_txt(txtname,TBL,MISSED):
 
 def batch_replace_txt(dir,name):
     TBL=load_tbl(name)
+    print u"blank=%x" % (TBL[u'\u3000'])
     MISSED=Set()
     for directory, subdirectories, files in os.walk(dir):
       for file in files:
