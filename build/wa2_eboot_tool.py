@@ -126,6 +126,49 @@ def import_to_eboot(buf, dir):
             fd.close()
         pos += 0x10
 
+def rebuild_eboot_file(buf, dir):
+    pos = WA2_EBOOT101_INDEX
+    cur_pos = 0
+    end_pos = 0
+    while True:
+        name_offset, data_offset, uncomp_size, block_size = struct.unpack(">4I", buf[pos:pos+0x10])
+        next_name_offset, next_data_offset = struct.unpack(">2I", buf[pos+0x10:pos+0x18])
+        if (name_offset == 0) : 
+            break
+        total_block = block_size
+        if (next_data_offset > 0) :
+            total_block = next_data_offset - data_offset
+        end_pos = data_offset-EBOOT_OFFSET+total_block
+        #print "%x %x, %x->%x" % (name_offset, data_offset, uncomp_size, block_size)
+        cpos = name_offset-EBOOT_OFFSET
+        name = struct.unpack("<1s", buf[cpos:cpos+1])[0]
+        while True:
+          cpos += 1
+          n = struct.unpack("<1s", buf[cpos:cpos+1])[0]
+          if n == "\x00" :
+              break;
+          name += n
+        if name[-4:-3] == '_' :
+        	name = name[:-4] + '.' + name[-3:]
+        name = dir + "/" + name + ".elzma"
+        if (os.path.isfile(name)) :
+            data = open(name, "rb").read()
+            file_comp_size = len(data) - 4
+            file_uncomp_size, = struct.unpack("1I", data[0:4])
+            if cur_pos ==0 :
+                cur_pos = data_offset-EBOOT_OFFSET
+            buf[pos+4:pos+0x10] = struct.pack(">3I", cur_pos + EBOOT_OFFSET, file_uncomp_size, file_comp_size)
+            buf[cur_pos:cur_pos+file_comp_size] = data[4:]
+            print "Import ok %d,%d->%d,%d  %s,%x" % (uncomp_size, block_size, file_uncomp_size, file_comp_size, name, cur_pos)
+            cur_pos += file_comp_size
+        else :
+            print "Not found %s. Rebuild failed." % name
+            return
+        pos += 0x10
+    if (cur_pos > end_pos) :
+        print "Check ELF failed. %x > %x" % (cur_pos, end_pos)
+    else :
+        print "Check ELF ok. %x <= %x" % (cur_pos, end_pos)
 
 def extract(buf, outputdir):
     pos = WA2_EBOOT101_INDEX
@@ -145,6 +188,7 @@ def extract(buf, outputdir):
         if name[-4:-3] == '_' :
         	name = name[:-4] + '.' + name[-3:]
         print "%s %d->%d" % (name, block_size, uncomp_size)
+        open(outputdir + "/eboot/"+name+".elzma", "wb+").write(struct.pack("I", uncomp_size) + buf[data_offset-EBOOT_OFFSET:data_offset-EBOOT_OFFSET+block_size])
         decompress(buf[data_offset-EBOOT_OFFSET:data_offset-EBOOT_OFFSET+block_size], uncomp_size, block_size, outputdir + "/eboot/"+name)
         pos += 0x10
 
@@ -163,6 +207,11 @@ if __name__ == "__main__":
         fd2 = os.open(sys.argv[2], os.O_RDWR)
         buf2 = mmap.mmap(fd2, size, access=mmap.ACCESS_WRITE)
         import_to_eboot(buf2, sys.argv[3])
+        os.close(fd2)
+    elif sys.argv[1] == '-rebuild':
+        fd2 = os.open(sys.argv[2], os.O_RDWR)
+        buf2 = mmap.mmap(fd2, size, access=mmap.ACCESS_WRITE)
+        rebuild_eboot_file(buf2, sys.argv[3])
         os.close(fd2)
     elif sys.argv[1] == '-d':
         decompress(buf, 0, size, sys.argv[3], 1)
