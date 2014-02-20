@@ -47,25 +47,33 @@ def load_tbl2(name):
     return TBL
 
 def replace_txt(txtname,TBL,MISSED):
-    fd = os.open(txtname, os.O_RDWR)
-    size = os.fstat(fd).st_size
-    buf = mmap.mmap(fd, size, access=mmap.ACCESS_WRITE)
-    cur = 0
+    alltxt = open(txtname,"rb").read().split(',')
+    newtxt = ""
     left = 0
-    while cur < size :
-        t1 = struct.unpack("<B", buf[cur:cur+1])
-        if t1[0] >= 0x80 :
-            char = unicode(buf[cur:cur+2],'cp936')
-            if TBL.has_key(char) :
-                buf[cur:cur+2] = struct.pack(">H", TBL[char])
-            else :
-                buf[cur:cur+2] = struct.pack(">H", TBL[u'\u3000'])
-                left += 1
-                MISSED.add(char)
-            cur += 2
-        else :
-            cur += 1
-    os.close(fd)
+    for txt in alltxt :
+        nt = ""
+        if txt.rfind(".tga") >= 0 or txt.rfind(".TGA") >= 0 or txt.rfind(".AMP") >= 0 or txt.rfind(".amp") >= 0 or txt.rfind(".ani") >= 0 or txt.rfind(".ANI") >= 0:
+            nt = unicode(txt,'cp936').encode('cp932')
+        else:
+            cur = 0
+            while cur < len(txt) :
+                t1 = struct.unpack("<B", txt[cur:cur+1])
+                if t1[0] >= 0x80 :
+                    char = unicode(txt[cur:cur+2],'cp936')
+                    if TBL.has_key(char) :
+                        nt += struct.pack(">H", TBL[char])
+                    else :
+                        nt += struct.pack(">H", TBL[u'\u3000'])
+                        #nt += txt[cur:cur+2]
+                        left += 1
+                        MISSED.add(char)
+                    cur += 2
+                else :
+                    nt += txt[cur:cur+1]
+                    cur += 1
+        newtxt += nt+","
+
+    open(txtname, "wb+").write(newtxt[:-1])
     if left > 0 :
         print 'replace %s.(left %d)' % (txtname, left)
     else :
