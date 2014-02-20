@@ -18,4 +18,3 @@ if [ $F1 != $F2 ]; then
 	#echo "$filename1 ok."
 fi
 done
-
