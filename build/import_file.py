@@ -1,11 +1,13 @@
 #For WHITE ALBUM2 PS3 File Script
 #By KiD
 
+import os
 import struct
 import sys
 import zipfile
+import StringIO
 
-def import_dar(name, zipname):
+def import_dar(name, zipdata):
 	fd = open(name,"rb+")
 	head = fd.read(0x10+0xb71*0x20)
 	if (head[0:2] != "\xac\x0d" or head[8:10] != "\x71\x0b") :
@@ -13,7 +15,7 @@ def import_dar(name, zipname):
 		fd.close()
 		return
 		
-	filezip = zipfile.ZipFile(zipname, "r")
+	filezip = zipfile.ZipFile(zipdata, "r")
 	for entry in filezip.infolist():
 		num = int(entry.filename.split('.', 1)[0])
 		size, zsize, offset = struct.unpack("LLQ", head[0x10+num*0x20:0x10+num*0x20+0x10])
@@ -28,7 +30,7 @@ def import_dar(name, zipname):
 			print "Import %d ok %d,%d -> %d,%d" % (num, size, zsize, file_uncomp_size, file_comp_size)
 		else:
 			print "Import %d error. %d,%d < %d,%d" % (num, size, zsize, file_uncomp_size, file_comp_size)
-
+	filezip.close()
 	fd.seek(0,0)
 	fd.write(head)
 	fd.close()
@@ -55,15 +57,56 @@ def import_pkgdds(name):
 		cnt += 1
 	fd.close()
 
+from ctypes import *
+import ctypes.wintypes
+
+def GetModuleHandle(filename=None):
+    h=windll.kernel32.GetModuleHandleW(filename)
+    if not h:
+        raise WinError()
+    return h
+
+def GetResource(typersc,idrsc,filename=None):
+    if type(idrsc) is int:
+        idrsc=u'#%d'%idrsc
+    if type(typersc) is int:
+        typersc=u'#%d'%typersc
+    hmod=GetModuleHandle(filename)
+    hrsc=windll.kernel32.FindResourceW(hmod,typersc,idrsc)
+    if not hrsc:
+        raise WinError()
+    hData=windll.kernel32.LoadResource(hmod,hrsc)
+    if not hData:
+        raise WinError()
+    size = windll.kernel32.SizeofResource(hmod, hrsc)
+    try:
+        ptr=windll.kernel32.LockResource(hData)
+        try:
+            data = ctypes.string_at(ptr, size)
+        finally:
+            UnlockResource = lambda x: None
+            UnlockResource(hData)
+    finally:
+        windll.kernel32.FreeResource(hData)
+    return data #windll.kernel32.LockResource(hglobal)[0]
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print('Bad argv.')
-        sys.exit(0)
+        sys.exit(-1)
 
     if sys.argv[1] == '-ip':
         import_pkgdds(sys.argv[2])
     elif sys.argv[1] == '-id' and len(sys.argv) > 3 :
-        import_dar(sys.argv[2], sys.argv[3])
+        import_dar(sys.argv[2], StringIO.StringIO(open(sys.argv[3], "rb").read()))
     else:
-        print 'Bad argv.'
-        
+        try:
+            res=GetResource(1,1)
+        except Exception,e:
+            res=None
+        if res:
+            import_dar(sys.argv[1], StringIO.StringIO(res))
+        else :
+            print 'Bad argv.'
+            sys.exit(-1)
+
