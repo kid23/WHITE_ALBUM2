@@ -8,6 +8,9 @@ import sys
 import codecs
 from sets import Set
 
+YINFU_UNICODE = u'\u266a' # 81f4 jap music char
+
+
 def convert2unicode(buf, size, name):
     out = codecs.open(name, "wb+", encoding="utf-16")
     out.write(unicode(buf,'cp932'))
@@ -60,6 +63,8 @@ def replace_txt(txtname,TBL,MISSED):
                 t1 = struct.unpack("<B", txt[cur:cur+1])
                 if t1[0] >= 0x80 :
                     char = unicode(txt[cur:cur+2],'cp936')
+                    if char == u'\u4f93' : 
+                        char = YINFU_UNICODE
                     if TBL.has_key(char) :
                         nt += struct.pack(">H", TBL[char])
                     else :
@@ -82,6 +87,10 @@ def replace_txt(txtname,TBL,MISSED):
 def batch_replace_txt(dir,name):
     TBL=load_tbl(name)
     print u"blank=%x" % (TBL[u'\u3000'])
+    if (not TBL.has_key(YINFU_UNICODE)) :
+        print "Not found yinfu(81f4)"
+        sys.exit(-1)
+    print "yinfu=%x" % (TBL[YINFU_UNICODE])
     MISSED=Set()
     for directory, subdirectories, files in os.walk(dir):
       for file in files:
