@@ -56,7 +56,7 @@ def replace_txt(txtname,TBL,MISSED):
     for txt in alltxt :
         nt = ""
         if txt.rfind(".tga") >= 0 or txt.rfind(".TGA") >= 0 or txt.rfind(".AMP") >= 0 or txt.rfind(".amp") >= 0 or txt.rfind(".ani") >= 0 or txt.rfind(".ANI") >= 0:
-            nt = unicode(txt,'cp936').encode('cp932')
+           nt = unicode(txt,'cp936').encode('cp932')
         else:
             cur = 0
             while cur < len(txt) :
@@ -98,7 +98,7 @@ def batch_replace_txt(dir,name):
             replace_txt(os.path.join(directory, file), TBL, MISSED)
     for val in MISSED :
         print val,
-    
+
 def make_tbl(buf, size, name):
     cur = 0
     tbl_file = codecs.open(name + ".tbl", "wb+", encoding="utf-16")
@@ -121,16 +121,21 @@ def make_tbl(buf, size, name):
     txt_file.close()
     print "Total %d char." % cnt
 
-def skip_char(buf):
+def skip_char(buf, TBL):
     cur = 0
     last = 0
     while cur < len(buf) :
         t1 = struct.unpack("<B", buf[cur:cur+1])
+        t2 = struct.unpack(">H", buf[cur:cur+2])
         if (t1[0] < 0x80) :
-            last = t1[0]
-        elif last == 0 :
-            break
-        cur += 1
+            if TBL.has_key(t1[0]) :
+                return cur
+            else:
+                cur += 1
+        elif TBL.has_key(t2[0]) :
+            return cur
+        else :
+            cur += 2
     return cur
 
 def trim_char(buf):
@@ -147,6 +152,7 @@ def match_txt(buf, TBL):
     cur = 0
     strlen = 0
     str = u''
+    ascii = 1
     while (cur < len(buf)) :
         c = struct.unpack("<B", buf[cur:cur+1])
         t = struct.unpack(">H", buf[cur:cur+2])
@@ -155,15 +161,22 @@ def match_txt(buf, TBL):
                 str += TBL[c[0]]
                 strlen += 1
                 cur += 1
+            elif c[0] == 0x0a :
+                str += "{n}"
+                strlen += 1
+                cur += 1
             else :
-                return str
+                return (str,strlen,ascii)
         elif TBL.has_key(t[0]) :
+            ascii = 0
             str += TBL[t[0]]
             strlen += 2
             cur += 2
+        elif c[0] == 0:
+            return (str,strlen,ascii)
         else :
-            return str
-    return str
+            return (u'',0,1)
+    return (str,strlen,ascii)
     
 def export_eboot_txt(buf, size, name):
     TBL=load_tbl2(name)
@@ -174,13 +187,13 @@ def export_eboot_txt(buf, size, name):
     while cur < END_OFFSET :
         per = float(cur - BEGIN_OFFSET)/(END_OFFSET - BEGIN_OFFSET) * 100.0
         print "%.2f%%\r" % per,
-        cur += skip_char(buf[cur:size])
-        str = match_txt(buf[cur:size], TBL)
-        if str != u'' and len(str) >= 2 :
-            line = u'%s,%d,%s\r\n\r\n' % ((hex(cur)), len(str) * 2, str)
-            #txt_file.write(unicode(hex(cur) + "," + ",") + str + u"\r\n\r\n")
+        cur += skip_char(buf[cur:size], TBL)
+        (str,strlen,ascii) = match_txt(buf[cur:size], TBL)
+        #print str, strlen
+        if str != u'' and strlen >= 4 and ascii == 0:
+            line = u'%s,%d,%s\r\n\r\n' % ((hex(cur)), strlen, str)
             txt_file.write(line)
-            cur += len(str) * 2
+            cur += strlen
         else :
             cur += trim_char(buf[cur:size])
     txt_file.close()
@@ -194,7 +207,7 @@ if __name__ == "__main__":
     if sys.argv[1] == '-r':
         batch_replace_txt(sys.argv[2], sys.argv[3])
         sys.exit(0)
-
+        
     fd = os.open(sys.argv[2], os.O_RDONLY)
     size = os.fstat(fd).st_size
     #buf = mmap.mmap(fd, size, prot=mmap.PROT_READ)
@@ -203,7 +216,7 @@ if __name__ == "__main__":
         make_tbl(buf, size, sys.argv[3])
     elif sys.argv[1] == '-c':
         convert2unicode(buf, size, sys.argv[3])
-    elif sys.argv[1] == '-e':
+    elif sys.argv[1] == '-e':	#-e eboot.elf file.tbl
         export_eboot_txt(buf, size, sys.argv[3])
     else :
         print 'Bad argv.'
