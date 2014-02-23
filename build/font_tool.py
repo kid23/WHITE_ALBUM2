@@ -54,12 +54,28 @@ def load_tbl2(name):
     print "Load %d char." % len(TBL)
     return TBL
 
+
 def replace_txt(txtname,TBL,MISSED):
     alltxt = open(txtname,"rb").read().split(',')
     newtxt = ""
     left = 0
+    zhuyintxts = Set()
     for txt in alltxt :
         nt = ""
+        pos1 = txt.find("<R")
+        pos2 = txt.find(">")
+        if pos1 >= 0 and pos2 > 1 and pos2 > pos1:
+            zy = txt[pos1+1:pos2].split('|')[1]
+            print zy
+            zhuyin = unicode(zy, 'cp936')
+            print len(zhuyin)
+            i = 0
+            for i in range(len(zhuyin)) :
+                zhuyintxts.add(zhuyin[i])
+
+            print zhuyintxts
+            sys.exit(-1)
+            
         if txt.rfind(".tga") >= 0 or txt.rfind(".TGA") >= 0 or txt.rfind(".AMP") >= 0 or txt.rfind(".amp") >= 0 or txt.rfind(".ani") >= 0 or txt.rfind(".ANI") >= 0:
            nt = unicode(txt,'cp936').encode('cp932')
         else:
@@ -107,6 +123,31 @@ def batch_replace_txt(dir,name):
             replace_txt(os.path.join(directory, file), TBL, MISSED)
     for val in MISSED :
         print val,
+
+def make_up_tbl(dir,name):
+    zhuyintxts=Set()
+    for directory, subdirectories, files in os.walk(dir):
+      for file in files:
+        if file.endswith('.txt'):
+            #print "Checking %s..." % file
+            alltxt = open(os.path.join(directory, file),"rb").read().split(',')
+            for txt in alltxt :
+                while True:
+                    pos1 = txt.find("<R")
+                    pos2 = txt.find(">")
+                    if pos1 >= 0 and pos2 > 1 and pos2 > pos1:
+                        zy = txt[pos1+1:pos2].split('|')[1]
+                        print zy
+                        tmp = unicode(zy, 'cp936')
+                        i = 0
+                        for i in range(len(tmp)) :
+                            zhuyintxts.add(tmp[i])
+                        txt = txt[pos2+1:]
+                    else:
+                        break;
+    tbl_file = codecs.open(name, "wb+", encoding="utf-16")
+    for val in zhuyintxts :
+        tbl_file.write(val)
 
 def make_tbl(buf, size, name):
     cur = 0
@@ -219,6 +260,9 @@ if __name__ == "__main__":
 
     if sys.argv[1] == '-r':
         batch_replace_txt(sys.argv[2], sys.argv[3])
+        sys.exit(0)
+    elif sys.argv[1] == '-mup':
+        make_up_tbl(sys.argv[2], sys.argv[3])
         sys.exit(0)
         
     fd = os.open(sys.argv[2], os.O_RDONLY)
