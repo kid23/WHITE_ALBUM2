@@ -1,3 +1,4 @@
+# -*- coding: cp936 -*- 
 #For WHITE ALBUM2 PS3 File Script
 #By KiD
 
@@ -57,6 +58,36 @@ def import_pkgdds(name):
 		cnt += 1
 	fd.close()
 
+def fix_savedata(dir,name):
+    if (not os.path.isdir(dir) or not os.path.isfile(dir+"/SYS.BIN") ): 
+        print "Bad dir."
+        return
+    fd = os.open(dir+"/SYS.BIN", os.O_RDWR)
+    buf = mmap.mmap(fd, os.fstat(fd).st_size, access=mmap.ACCESS_WRITE)
+    if (buf[0:8] != "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF"): 
+        print "Bad savedata or not decrypted. SYS.BIN"
+        sys.exit(0)
+    for pos in range(0x269480, 0x269480 + 0x1258 * 100) :
+        if buf[pos:pos+4] == "\0\0\0\2" :
+            buf[pos+0x18:pos+0x58] = "\0\0\0\0" * 0x10
+        pos+=0x1258
+    os.close(fd)
+
+    import fnmatch
+    zstr = "\0\0\0\0" * ((0x8A358 - 0x46358) / 4)
+    for directory, subdirectories, files in os.walk(dir):
+      for file in files:
+        if fnmatch.fnmatch(file, 'SAVE???.BIN'):
+            fd = os.open(os.path.join(directory, file), os.O_RDWR)
+            buf = mmap.mmap(fd, os.fstat(fd).st_size, access=mmap.ACCESS_WRITE)
+            if (buf[0:4] != "\0\0\0\2") :
+                print "Bad savedata or not decrypted. %s" % file
+                sys.exit(0)
+            buf[0x18:0x58] = "\0\0\0\0" * 0x10
+            buf[0x46358:0x8A358] = zstr
+            os.close(fd)
+            print 'Fix %s.' % (file)
+
 from ctypes import *
 import ctypes.wintypes
 
@@ -93,12 +124,15 @@ def GetResource(typersc,idrsc,filename=None):
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print('Bad argv.')
+        windll.user32.MessageBoxA(None, "参数调用错误", 'WA2_PS3中文补丁', 0)
         sys.exit(-1)
 
     if sys.argv[1] == '-ip':
         import_pkgdds(sys.argv[2])
     elif sys.argv[1] == '-id' and len(sys.argv) > 3 :
         import_dar(sys.argv[2], StringIO.StringIO(open(sys.argv[3], "rb").read()))
+    else sys.argv[1] == '-fix':
+        fix_savedata(sys.argv[2], sys.argv[3])
     else:
         try:
             res=GetResource(1,1)
@@ -108,5 +142,6 @@ if __name__ == "__main__":
             import_dar(sys.argv[1], StringIO.StringIO(res))
         else :
             print 'Bad argv.'
+            windll.user32.MessageBoxA(None, "参数调用错误", 'WA2_PS3中文补丁', 0)
             sys.exit(-1)
 
