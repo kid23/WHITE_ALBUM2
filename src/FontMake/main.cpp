@@ -86,6 +86,10 @@ void Paint_WA2(WCHAR* fontname, WCHAR* filename, const int TextureWidth, const i
 	FontFamily  fontFamily1(fontname);
 	Font        font1(&fontFamily1, FontSize, FontStyleBold, UnitPixel);
 
+	FontFamily  fontFamilyAscii(L"Arial Narrow");
+	Font        fontAscii(&fontFamilyAscii, FontSize, FontStyleRegular, UnitPixel);
+
+
 	int num = 0;
 	vector<WCHAR>::const_iterator it = wa2_tbl.begin();
 	Bitmap bitmap1(TextureWidth, TextureHeight);
@@ -102,7 +106,8 @@ void Paint_WA2(WCHAR* fontname, WCHAR* filename, const int TextureWidth, const i
 			for (int j = 0; j < TextureWidth / FontBlockWidth && it != wa2_tbl.end(); ++j, ++it, x += FontBlockWidth)
 			{
 				wstring t(&(*it), 1);
-				g1.DrawString(t.c_str(), -1, &font1, PointF(x, y), &solidBrush2);
+				if (*it <= L'}') { wprintf(L"draw ascii\n"); g1.DrawString(t.c_str(), -1, &fontAscii, PointF(x, y), &solidBrush2); }
+				else { g1.DrawString(t.c_str(), -1, &font1, PointF(x, y), &solidBrush2); }
 			}
 			y += FontBlockHeight;
 			x = 0.0f;
@@ -129,7 +134,7 @@ void MakeFont_WA2(char* name1, char* name2)
 
 	// Initialize GDI+.
 	GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
-	Paint_WA2(L"幼圆", L"font1.png", 2040, 2160, 40, 40, 28);
+	Paint_WA2(L"方正准圆_GBK", L"font1.png", 2040, 2160, 40, 40, 28);
 
 	if (!ReadTBL_U(name2))
 	{
@@ -138,7 +143,7 @@ void MakeFont_WA2(char* name1, char* name2)
 	}
 
 	//wa2_tbl.erase(wa2_tbl.begin() + 4, wa2_tbl.begin() + 6);	//	"()"
-	Paint_WA2(L"幼圆", L"font3.png", 2048, 352, 16, 16, 14);
+	Paint_WA2(L"方正准圆_GBK", L"font3.png", 2048, 352, 16, 16, 14);
 	GdiplusShutdown(gdiplusToken);
 }
 
