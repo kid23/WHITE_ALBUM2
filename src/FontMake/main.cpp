@@ -106,7 +106,7 @@ void Paint_WA2(WCHAR* fontname, WCHAR* filename, const int TextureWidth, const i
 			for (int j = 0; j < TextureWidth / FontBlockWidth && it != wa2_tbl.end(); ++j, ++it, x += FontBlockWidth)
 			{
 				wstring t(&(*it), 1);
-				if (*it <= L'}') { wprintf(L"draw ascii\n"); g1.DrawString(t.c_str(), -1, &fontAscii, PointF(x, y), &solidBrush2); }
+				if (*it <= L'}') { g1.DrawString(t.c_str(), -1, &fontAscii, PointF(x, y), &solidBrush2); }
 				else { g1.DrawString(t.c_str(), -1, &font1, PointF(x, y), &solidBrush2); }
 			}
 			y += FontBlockHeight;
@@ -114,14 +114,14 @@ void Paint_WA2(WCHAR* fontname, WCHAR* filename, const int TextureWidth, const i
 		}
 
 	} 
-	if (it != wa2_tbl.end()) { wprintf(L"Make Font error. %d ok\n", it - wa2_tbl.begin()); return; }
+	if (it != wa2_tbl.end()) { wprintf(L"Make Font error. %d ok\n", it - wa2_tbl.begin()); }
 	CLSID pngClsid;
 	GetEncoderClsid(L"image/png", &pngClsid);
 	bitmap1.Save(filename, &pngClsid);
 	wprintf(L"Make font %s ...\n", filename);
 }
 
-void MakeFont_WA2(char* name1, char* name2)
+void MakeFont_WA2(char* name1, char* name2, char* name3)
 {
 	if (!ReadTBL_U(name1))
 	{
@@ -141,10 +141,20 @@ void MakeFont_WA2(char* name1, char* name2)
 		_wperror(L"Read TBL file error ");
 		return;
 	}
+	//wa2_tbl.erase(wa2_tbl.begin() + 4, wa2_tbl.begin() + 6);	//	"()"
+	Paint_WA2(L"方正准圆_GBK", L"font2.png", 2040, 48, 24, 24, 10);
+
+
+	if (!ReadTBL_U(name3))
+	{
+		_wperror(L"Read TBL file error ");
+		return;
+	}
 
 	//wa2_tbl.erase(wa2_tbl.begin() + 4, wa2_tbl.begin() + 6);	//	"()"
 	Paint_WA2(L"方正准圆_GBK", L"font3.png", 2048, 352, 16, 16, 14);
 	GdiplusShutdown(gdiplusToken);
+
 }
 
 int main(int argc, char* argv[])
@@ -157,7 +167,7 @@ int main(int argc, char* argv[])
 
 	if (!strcmp(argv[1], "-fwa2"))
 	{
-		MakeFont_WA2(argv[2], argv[3]);
+		MakeFont_WA2(argv[2], argv[3], argv[4]);
 	}
 
 	return 0;
