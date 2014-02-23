@@ -26,6 +26,11 @@ def load_tbl(name):
             char = eachline[5:6]
             c = int(code, 16)
             TBL[char] = c
+        else :
+            code = eachline[0:2]
+            char = eachline[3:4]
+            c = int(code, 16)
+            TBL[char] = c
     tbl_file.close()
     print "Load %d char." % len(TBL)
     return TBL
@@ -74,7 +79,11 @@ def replace_txt(txtname,TBL,MISSED):
                         MISSED.add(char)
                     cur += 2
                 else :
-                    nt += txt[cur:cur+1]
+                    char = unicode(txt[cur:cur+1],'cp936')
+                    if (TBL.has_key(char)) :
+                        nt += struct.pack("B", TBL[char])
+                    else :
+                        nt += txt[cur:cur+1]
                     cur += 1
         newtxt += nt+","
 
@@ -123,11 +132,12 @@ def make_tbl(buf, size, name):
 
 def skip_char(buf, TBL):
     cur = 0
-    last = 0
     while cur < len(buf) :
         t1 = struct.unpack("<B", buf[cur:cur+1])
         t2 = struct.unpack(">H", buf[cur:cur+2])
-        if (t1[0] < 0x80) :
+        if (t1[0] == 0):
+            cur += 1
+        elif (t1[0] < 0x80) :
             if TBL.has_key(t1[0]) :
                 return cur
             else:
@@ -135,7 +145,7 @@ def skip_char(buf, TBL):
         elif TBL.has_key(t2[0]) :
             return cur
         else :
-            cur += 2
+            cur += trim_char(buf[cur:])
     return cur
 
 def trim_char(buf):
@@ -145,7 +155,7 @@ def trim_char(buf):
         if (t1[0]) :
             cur += 1
         else :
-            break        
+            break
     return cur
 
 def match_txt(buf, TBL):
@@ -156,37 +166,34 @@ def match_txt(buf, TBL):
     while (cur < len(buf)) :
         c = struct.unpack("<B", buf[cur:cur+1])
         t = struct.unpack(">H", buf[cur:cur+2])
-        if (c[0] < 0x80) :
+        if c[0] == 0 :
+            return (str,strlen,ascii)
+        elif c[0] == 0x0a :
+            str += "{n}"
+            strlen += 1
+            cur += 1
+        elif (c[0] < 0x80) :
             if TBL.has_key(c[0]) :
                 str += TBL[c[0]]
                 strlen += 1
                 cur += 1
-            elif c[0] == 0x0a :
-                str += "{n}"
-                strlen += 1
-                cur += 1
             else :
-                return (str,strlen,ascii)
+                return (u'',0,1)
         elif TBL.has_key(t[0]) :
             ascii = 0
             str += TBL[t[0]]
             strlen += 2
             cur += 2
-        elif c[0] == 0:
-            return (str,strlen,ascii)
         else :
             return (u'',0,1)
     return (str,strlen,ascii)
-    
-def export_eboot_txt(buf, size, name):
-    TBL=load_tbl2(name)
-    txt_file = codecs.open("EBOOT.ELF.TXT", "wb+", encoding="utf-16")
-    BEGIN_OFFSET = 0x00100B74
-    END_OFFSET = 0x3e3a90
-    cur = BEGIN_OFFSET
-    while cur < END_OFFSET :
-        per = float(cur - BEGIN_OFFSET)/(END_OFFSET - BEGIN_OFFSET) * 100.0
+
+def export_txt(buf, begin, end, TBL, txt_file):
+    cur = begin
+    while cur < end :
+        per = float(cur - begin)/(end - begin) * 100.0
         print "%.2f%%\r" % per,
+        #print "%x" % cur
         cur += skip_char(buf[cur:size], TBL)
         (str,strlen,ascii) = match_txt(buf[cur:size], TBL)
         #print str, strlen
@@ -196,6 +203,12 @@ def export_eboot_txt(buf, size, name):
             cur += strlen
         else :
             cur += trim_char(buf[cur:size])
+    
+def export_eboot_txt(buf, size, name):
+    TBL=load_tbl2(name)
+    txt_file = codecs.open("EBOOT.ELF.TXT", "wb+", encoding="utf-16")
+    export_txt(buf, 0x00100B74, 0x00109e40, TBL, txt_file)
+    export_txt(buf, 0x3e26ec, 0x3e3a90, TBL, txt_file)
     txt_file.close()
     print "Export EBOOT.ELF.TXT end."
 
