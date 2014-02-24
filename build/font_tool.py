@@ -253,6 +253,50 @@ def export_eboot_txt(buf, size, name):
     txt_file.close()
     print "Export EBOOT.ELF.TXT end."
 
+def extract_dds3(name):
+	data = open(name,"rb").read()
+	height,width = struct.unpack("II", data[0xc:0x14])
+	cur = 0x80
+	raw_r =""
+	raw_g =""
+	raw_b =""
+	while cur < (height*width*2+0x80):
+		l1,h1,l2,h2 = struct.unpack("BBBB", data[cur:cur+4])
+		g = ((l1 & 0xf0)  | ((l2 & 0xf0)) >> 4)
+		b = ((l1 & 0xf) << 4) | (l2 & 0xf)
+		r = ((h1 & 0xf) << 4) | (h2 & 0xf)
+		#print r,g,b
+		raw_r += struct.pack("B", r);
+		raw_g += struct.pack("B", g);
+		raw_b += struct.pack("B", b);
+		cur += 4
+	open(name+"_r.bin","wb+").write(raw_r);
+	open(name+"_g.bin","wb+").write(raw_g);
+	open(name+"_b.bin","wb+").write(raw_b);
+
+def make_dds3(name, out):
+	data = open(name,"rb+").read()
+	height,width = struct.unpack("II", data[0xc:0x14])
+	if (height != 128 or width != 512):
+		print "Bad size. %d,%d" % (height,width)
+		return
+	data_r = open(name+"_r.bin","rb").read()
+	data_g = open(name+"_g.bin","rb").read()
+	data_b = open(name+"_b.bin","rb").read()
+	cur = 0
+	raw = ""
+	while cur < len(data_r):
+		r = struct.unpack("B", data_r[cur])[0]
+		g = struct.unpack("B", data_g[cur])[0]
+		b = struct.unpack("B", data_b[cur])[0]
+		l1 = (g & 0xf0) | (b >> 4)
+		h1 = 0xf0 | (r >> 4)
+		l2 = ((g & 0xf) << 4) | (b & 0xf)
+		h2 = 0xf0 | (r & 0xf)
+		raw += struct.pack("BBBB", l1,h1,l2,h2);
+		cur += 1
+	open(out,"wb+").write(data[0:0x80]+raw)
+
 if __name__ == "__main__":
     if len(sys.argv) < 3:
         print('Bad argv.')
@@ -263,6 +307,12 @@ if __name__ == "__main__":
         sys.exit(0)
     elif sys.argv[1] == '-mup':
         make_up_tbl(sys.argv[2], sys.argv[3])
+        sys.exit(0)
+    elif sys.argv[1] == '-e3':
+        extract_dds3(sys.argv[2])
+        sys.exit(0)
+    elif sys.argv[1] == '-m3':
+        make_dds3(sys.argv[2], sys.argv[3])
         sys.exit(0)
         
     fd = os.open(sys.argv[2], os.O_RDONLY)
