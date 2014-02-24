@@ -8,13 +8,15 @@ import sys
 import zipfile
 import StringIO
 
+EXE_TITLE = "WA2_PS3中文补丁"
+
 def import_dar(name, zipdata):
 	fd = open(name,"rb+")
 	head = fd.read(0x10+0xb71*0x20)
 	if (head[0:2] != "\xac\x0d" or head[8:10] != "\x71\x0b") :
 		print "Bad dar file."
 		fd.close()
-		return
+        ErrorMessageBox("data.dar文件错误")
 		
 	filezip = zipfile.ZipFile(zipdata, "r")
 	for entry in filezip.infolist():
@@ -35,6 +37,7 @@ def import_dar(name, zipdata):
 	fd.seek(0,0)
 	fd.write(head)
 	fd.close()
+    windll.user32.MessageBoxA(None, "补丁应用成功!", EXE_TITLE, 0)
 
 def import_pkgdds(name):
 	fd = open(name,"rb+")
@@ -58,21 +61,23 @@ def import_pkgdds(name):
 		cnt += 1
 	fd.close()
 
-def fix_savedata(dir,name):
+def fix_savedata(dir):
     if (not os.path.isdir(dir) or not os.path.isfile(dir+"/SYS.BIN") ): 
-        print "Bad dir."
-        return
+        ErrorMessageBox("目录错误")
+        
+    import mmap
     fd = os.open(dir+"/SYS.BIN", os.O_RDWR)
     buf = mmap.mmap(fd, os.fstat(fd).st_size, access=mmap.ACCESS_WRITE)
     if (buf[0:8] != "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF"): 
         print "Bad savedata or not decrypted. SYS.BIN"
-        sys.exit(0)
+        ErrorMessageBox("存档错误")
     for pos in range(0x269480, 0x269480 + 0x1258 * 100) :
         if buf[pos:pos+4] == "\0\0\0\2" :
             buf[pos+0x18:pos+0x58] = "\0\0\0\0" * 0x10
         pos+=0x1258
     os.close(fd)
-
+    print 'Fix SYS.BIN.'
+    
     import fnmatch
     zstr = "\0\0\0\0" * ((0x8A358 - 0x46358) / 4)
     for directory, subdirectories, files in os.walk(dir):
@@ -82,11 +87,12 @@ def fix_savedata(dir,name):
             buf = mmap.mmap(fd, os.fstat(fd).st_size, access=mmap.ACCESS_WRITE)
             if (buf[0:4] != "\0\0\0\2") :
                 print "Bad savedata or not decrypted. %s" % file
-                sys.exit(0)
+                ErrorMessageBox("存档错误或未解密")
             buf[0x18:0x58] = "\0\0\0\0" * 0x10
             buf[0x46358:0x8A358] = zstr
             os.close(fd)
             print 'Fix %s.' % (file)
+    windll.user32.MessageBoxA(None, "存档修正完成!", EXE_TITLE, 0)
 
 from ctypes import *
 import ctypes.wintypes
@@ -121,58 +127,31 @@ def GetResource(typersc,idrsc,filename=None):
         windll.kernel32.FreeResource(hData)
     return data #windll.kernel32.LockResource(hglobal)[0]
 
-def extract_dds3(name):
-	data = open(name,"rb+").read()
-	height,width = struct.unpack("II", data[0xc:0x14])
-	cur = 0x80
-	raw_r =""
-	raw_g =""
-	raw_b =""
-	while cur < (height*width*2+0x80):
-		l1,h1,l2,h2 = struct.unpack("BBBB", data[cur:cur+4])
-		#l1 = struct.unpack("B", data[cur:cur+1])
-		#h1 = struct.unpack("B", data[cur+1:cur+2])
-		#l2 = struct.unpack("B", data[cur+2:cur+3])
-		#h2 = struct.unpack("B", data[cur+3:cur+4])
-		
-		r = ((l1 & 0xf0)  | ((l2 & 0xf0)) >> 4)
-		#r = (r << 4 | r >> 4) & 0xff
-		g = ((l1 & 0xf) << 4) | (l2 & 0xf)
-		#g = (g << 4 | g >> 4) & 0xff
-		b = ((h1 & 0xf) << 4) | (h2 & 0xf)
-		#b = (b << 4 | b >> 4) & 0xff
-		#print r,g,b
-		raw_r += struct.pack("B", r);
-		raw_g += struct.pack("B", g);
-		raw_b += struct.pack("B", b);
-		cur += 4
-	open("raw_r.bin","wb+").write(raw_r);
-	open("raw_g.bin","wb+").write(raw_g);
-	open("raw_b.bin","wb+").write(raw_b);
+def ErrorMessageBox(str="参数调用错误          "):
+    print('Bad argv.')
+    windll.user32.MessageBoxA(None, str, EXE_TITLE, 0)
+    sys.exit(-1)
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print('Bad argv.')
-        windll.user32.MessageBoxA(None, "参数调用错误", 'WA2_PS3中文补丁', 0)
-        sys.exit(-1)
+        ErrorMessageBox()
 
     if sys.argv[1] == '-ip':
         import_pkgdds(sys.argv[2])
     elif sys.argv[1] == '-id' and len(sys.argv) > 3 :
         import_dar(sys.argv[2], StringIO.StringIO(open(sys.argv[3], "rb").read()))
     elif sys.argv[1] == '-fix':
-        fix_savedata(sys.argv[2], sys.argv[3])
-    elif sys.argv[1] == '-e3':
-        extract_dds3(sys.argv[2])
+        fix_savedata(sys.argv[2])
     else:
-        try:
-            res=GetResource(1,1)
-        except Exception,e:
-            res=None
-        if res:
-            import_dar(sys.argv[1], StringIO.StringIO(res))
-        else :
-            print 'Bad argv.'
-            windll.user32.MessageBoxA(None, "参数调用错误", 'WA2_PS3中文补丁', 0)
-            sys.exit(-1)
+        if (sys.argv[1].endswith('BLJM60571WA2')) :
+            fix_savedata(sys.argv[1])
+        else :   
+            try:
+                res=GetResource(1,1)
+            except Exception,e:
+                res=None
+            if res:
+                import_dar(sys.argv[1], StringIO.StringIO(res))
+            else :
+                ErrorMessageBox()
 
