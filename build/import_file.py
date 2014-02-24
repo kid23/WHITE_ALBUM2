@@ -121,6 +121,35 @@ def GetResource(typersc,idrsc,filename=None):
         windll.kernel32.FreeResource(hData)
     return data #windll.kernel32.LockResource(hglobal)[0]
 
+def extract_dds3(name):
+	data = open(name,"rb+").read()
+	height,width = struct.unpack("II", data[0xc:0x14])
+	cur = 0x80
+	raw_r =""
+	raw_g =""
+	raw_b =""
+	while cur < (height*width*2+0x80):
+		l1,h1,l2,h2 = struct.unpack("BBBB", data[cur:cur+4])
+		#l1 = struct.unpack("B", data[cur:cur+1])
+		#h1 = struct.unpack("B", data[cur+1:cur+2])
+		#l2 = struct.unpack("B", data[cur+2:cur+3])
+		#h2 = struct.unpack("B", data[cur+3:cur+4])
+		
+		r = ((l1 & 0xf0)  | ((l2 & 0xf0)) >> 4)
+		#r = (r << 4 | r >> 4) & 0xff
+		g = ((l1 & 0xf) << 4) | (l2 & 0xf)
+		#g = (g << 4 | g >> 4) & 0xff
+		b = ((h1 & 0xf) << 4) | (h2 & 0xf)
+		#b = (b << 4 | b >> 4) & 0xff
+		#print r,g,b
+		raw_r += struct.pack("B", r);
+		raw_g += struct.pack("B", g);
+		raw_b += struct.pack("B", b);
+		cur += 4
+	open("raw_r.bin","wb+").write(raw_r);
+	open("raw_g.bin","wb+").write(raw_g);
+	open("raw_b.bin","wb+").write(raw_b);
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print('Bad argv.')
@@ -131,8 +160,10 @@ if __name__ == "__main__":
         import_pkgdds(sys.argv[2])
     elif sys.argv[1] == '-id' and len(sys.argv) > 3 :
         import_dar(sys.argv[2], StringIO.StringIO(open(sys.argv[3], "rb").read()))
-    else sys.argv[1] == '-fix':
+    elif sys.argv[1] == '-fix':
         fix_savedata(sys.argv[2], sys.argv[3])
+    elif sys.argv[1] == '-e3':
+        extract_dds3(sys.argv[2])
     else:
         try:
             res=GetResource(1,1)
