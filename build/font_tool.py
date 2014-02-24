@@ -54,28 +54,38 @@ def load_tbl2(name):
     print "Load %d char." % len(TBL)
     return TBL
 
+def replace_zhuyin_txt(txt,TBL_UP):	#<R...|...>
+	nt=""
+	cur=0
+	print txt
+	while cur < len(txt) :
+		t1 = struct.unpack("<B", txt[cur:cur+1])
+		if t1[0] >= 0x80 :
+			char = unicode(txt[cur:cur+2],'cp936')
+			if char == u'\u4f93' : 
+				char = YINFU_UNICODE
+			if TBL_UP.has_key(char) :
+				nt += struct.pack(">H", TBL_UP[char])
+			else :
+				nt += struct.pack(">H", TBL_UP[u'\u3000'])
+				#nt += txt[cur:cur+2]
+			cur += 2
+		else :
+			char = unicode(txt[cur:cur+1],'cp936')
+			if (TBL_UP.has_key(char)) :
+				nt += struct.pack("B", TBL_UP[char])
+			else :
+				nt += txt[cur:cur+1]
+			cur += 1
+	return nt
 
-def replace_txt(txtname,TBL,MISSED):
+def replace_txt(txtname,TBL,TBL_UP,MISSED):
     alltxt = open(txtname,"rb").read().split(',')
     newtxt = ""
     left = 0
     zhuyintxts = Set()
     for txt in alltxt :
         nt = ""
-        pos1 = txt.find("<R")
-        pos2 = txt.find(">")
-        if pos1 >= 0 and pos2 > 1 and pos2 > pos1:
-            zy = txt[pos1+1:pos2].split('|')[1]
-            print zy
-            zhuyin = unicode(zy, 'cp936')
-            print len(zhuyin)
-            i = 0
-            for i in range(len(zhuyin)) :
-                zhuyintxts.add(zhuyin[i])
-
-            print zhuyintxts
-            sys.exit(-1)
-            
         if txt.rfind(".tga") >= 0 or txt.rfind(".TGA") >= 0 or txt.rfind(".AMP") >= 0 or txt.rfind(".amp") >= 0 or txt.rfind(".ani") >= 0 or txt.rfind(".ANI") >= 0:
            nt = unicode(txt,'cp936').encode('cp932')
         else:
@@ -96,6 +106,13 @@ def replace_txt(txtname,TBL,MISSED):
                     cur += 2
                 else :
                     char = unicode(txt[cur:cur+1],'cp936')
+                    if (char == u'|'):	#<R...|...>
+                        pos = txt.find(">", cur+1)
+                        if (pos > cur):
+                            zhuyin_txt = replace_zhuyin_txt(txt[cur+1:pos],TBL_UP)
+                            nt += txt[cur:cur+1] + zhuyin_txt +">"
+                            cur = pos+1
+                            continue
                     if (TBL.has_key(char)) :
                         nt += struct.pack("B", TBL[char])
                     else :
@@ -109,8 +126,9 @@ def replace_txt(txtname,TBL,MISSED):
     else :
         print 'replace %s ok.' % (txtname)
 
-def batch_replace_txt(dir,name):
+def batch_replace_txt(dir,name,name2):
     TBL=load_tbl(name)
+    TBL_UP=load_tbl(name2)
     print u"blank=%x" % (TBL[u'\u3000'])
     if (not TBL.has_key(YINFU_UNICODE)) :
         print "Not found yinfu(81f4)"
@@ -120,7 +138,7 @@ def batch_replace_txt(dir,name):
     for directory, subdirectories, files in os.walk(dir):
       for file in files:
         if file.endswith('.txt'):
-            replace_txt(os.path.join(directory, file), TBL, MISSED)
+            replace_txt(os.path.join(directory, file), TBL, TBL_UP, MISSED)
     for val in MISSED :
         print val,
 
@@ -303,7 +321,7 @@ if __name__ == "__main__":
         sys.exit(0)
 
     if sys.argv[1] == '-r':
-        batch_replace_txt(sys.argv[2], sys.argv[3])
+        batch_replace_txt(sys.argv[2], sys.argv[3], sys.argv[4])
         sys.exit(0)
     elif sys.argv[1] == '-mup':
         make_up_tbl(sys.argv[2], sys.argv[3])
