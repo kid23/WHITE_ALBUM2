@@ -95,8 +95,11 @@ void Paint_WA2(WCHAR* fontname, WCHAR* filename, const int TextureWidth, const i
 	Bitmap bitmap1(TextureWidth, TextureHeight);
 	Graphics g1(&bitmap1);
 	g1.FillRectangle(&solidBrush3, 0, 0, TextureWidth, TextureHeight);
+	g1.SetSmoothingMode(SmoothingModeAntiAlias);
+	g1.SetInterpolationMode(InterpolationModeHighQualityBicubic);
 	g1.SetTextRenderingHint(TextRenderingHintAntiAlias);
 	wprintf(L"begin\n");
+	StringFormat strformat;
 
 	{
 		float x = 0.0f;
@@ -106,12 +109,46 @@ void Paint_WA2(WCHAR* fontname, WCHAR* filename, const int TextureWidth, const i
 			for (int j = 0; j < TextureWidth / FontBlockWidth && it != wa2_tbl.end(); ++j, ++it, x += FontBlockWidth)
 			{
 				wstring t(&(*it), 1);
-				if (*it <= L'}') { g1.DrawString(t.c_str(), -1, &fontAscii, PointF(x, y), &solidBrush2); }
-				else { g1.DrawString(t.c_str(), -1, &font1, PointF(x, y), &solidBrush2); }
+
+				if (*it <= L'}') 
+				{ 
+					GraphicsPath myPath;
+					myPath.AddString(t.c_str(), t.length(), &fontFamilyAscii, FontStyleRegular, 28, PointF(x, y), &strformat);
+					Pen pen(Color(43, 52, 59), 5);
+					pen.SetLineJoin(LineJoinRound);
+					g1.DrawPath(&pen, &myPath);
+					LinearGradientBrush brush(Gdiplus::Rect(x, y, FontBlockWidth, FontBlockWidth),
+						Color(255, 255, 255), Color(176, 224, 208), LinearGradientModeVertical);
+					g1.FillPath(&brush, &myPath);
+					//g1.DrawString(t.c_str(), -1, &fontAscii, PointF(x, y), &solidBrush2); 
+				}
+				else 
+				{ 
+					GraphicsPath myPath;
+					myPath.AddString(t.c_str(), t.length(), &fontFamily1, FontStyleRegular, 28, PointF(x, y), &strformat);
+					Pen pen(Color(43, 52, 59), 6);
+					pen.SetLineJoin(LineJoinRound);
+					g1.DrawPath(&pen, &myPath);
+					LinearGradientBrush brush(Gdiplus::Rect(x, y, FontBlockWidth, FontBlockWidth),
+						Color(255, 255, 255), Color(176, 224, 208), LinearGradientModeVertical);
+					g1.FillPath(&brush, &myPath);
+					//g1.DrawString(t.c_str(), -1, &font1, PointF(x, y), &solidBrush2); 
+				}
 			}
 			y += FontBlockHeight;
 			x = 0.0f;
 		}
+		/*for (int i = 1; i<6; ++i)
+		{
+			Pen pen(Color(32, 0, 128, 192), i);
+			pen.SetLineJoin(LineJoinRound);
+			g1.DrawPath(&pen, &myPath);
+		}*/
+		//	g1.DrawPath(&pen, &myPath);
+		/*LinearGradientBrush brush(Gdiplus::Rect(0, 0, TextureWidth, TextureHeight),
+			Color(132, 200, 251), Color(0, 0, 160), LinearGradientModeVertical);
+		g1.FillPath(&brush, &myPath);*/
+		//g1.FillPath(&solidBrush2, &myPath);
 
 	} 
 	if (it != wa2_tbl.end()) { wprintf(L"Make Font error. %d ok\n", it - wa2_tbl.begin()); }
