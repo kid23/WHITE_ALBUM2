@@ -16,8 +16,8 @@ def import_dar(name, zipdata):
 	if (head[0:2] != "\xac\x0d" or head[8:10] != "\x71\x0b") :
 		print "Bad dar file."
 		fd.close()
-        ErrorMessageBox("data.dar文件错误")
-		
+		ErrorMessageBox("data.dar文件错误")
+
 	filezip = zipfile.ZipFile(zipdata, "r")
 	for entry in filezip.infolist():
 		num = int(entry.filename.split('.', 1)[0])
@@ -37,7 +37,7 @@ def import_dar(name, zipdata):
 	fd.seek(0,0)
 	fd.write(head)
 	fd.close()
-    windll.user32.MessageBoxA(None, "补丁应用成功!", EXE_TITLE, 0)
+	windll.user32.MessageBoxA(None, "补丁应用成功!", EXE_TITLE, 0)
 
 def import_pkgdds(name):
 	fd = open(name,"rb+")
