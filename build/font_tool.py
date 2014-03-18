@@ -68,7 +68,6 @@ def replace_zhuyin_txt(txt,TBL_UP):	#<R...|...>
 				nt += struct.pack(">H", TBL_UP[char])
 			else :
 				nt += struct.pack(">H", TBL_UP[u'\u3000'])
-				#nt += txt[cur:cur+2]
 			cur += 2
 		else :
 			char = unicode(txt[cur:cur+1],'cp936')

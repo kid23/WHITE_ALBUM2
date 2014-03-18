@@ -113,7 +113,7 @@ void Paint_WA2(WCHAR* fontname, WCHAR* filename, const int TextureWidth, const i
 				if (*it <= L'}') 
 				{ 
 					GraphicsPath myPath;
-					myPath.AddString(t.c_str(), t.length(), &fontFamilyAscii, FontStyleRegular, 28, PointF(x, y), &strformat);
+					myPath.AddString(t.c_str(), t.length(), &fontFamilyAscii, FontStyleRegular, FontSize, PointF(x, y), &strformat);
 					Pen pen(Color(43, 52, 59), 5);
 					pen.SetLineJoin(LineJoinRound);
 					g1.DrawPath(&pen, &myPath);
@@ -125,12 +125,13 @@ void Paint_WA2(WCHAR* fontname, WCHAR* filename, const int TextureWidth, const i
 				else 
 				{ 
 					GraphicsPath myPath;
-					myPath.AddString(t.c_str(), t.length(), &fontFamily1, FontStyleRegular, 28, PointF(x, y), &strformat);
+					myPath.AddString(t.c_str(), t.length(), &fontFamily1, FontStyleRegular, FontSize, PointF(x, y), &strformat);
 					Pen pen(Color(43, 52, 59), 6);
 					pen.SetLineJoin(LineJoinRound);
 					g1.DrawPath(&pen, &myPath);
 					LinearGradientBrush brush(Gdiplus::Rect(x, y, FontBlockWidth, FontBlockWidth),
 						Color(255, 255, 255), Color(176, 224, 208), LinearGradientModeVertical);
+					brush.SetBlendTriangularShape(0.9f, 1.5f);
 					g1.FillPath(&brush, &myPath);
 					//g1.DrawString(t.c_str(), -1, &font1, PointF(x, y), &solidBrush2); 
 				}
@@ -173,13 +174,13 @@ void MakeFont_WA2(char* name1, char* name2, char* name3)
 	GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
 	Paint_WA2(L"方正准圆_GBK", L"font1.png", 2040, 2160, 40, 40, 28);
 
-	if (!ReadTBL_U(name2))
+	/*if (!ReadTBL_U(name2))
 	{
 		_wperror(L"Read TBL file error ");
 		return;
 	}
 	//wa2_tbl.erase(wa2_tbl.begin() + 4, wa2_tbl.begin() + 6);	//	"()"
-	Paint_WA2(L"方正准圆_GBK", L"font2.png", 2040, 48, 24, 24, 10);
+	Paint_WA2(L"方正准圆_GBK", L"font2.png", 2040, 48, 24, 24, 10);*/
 
 
 	if (!ReadTBL_U(name3))
