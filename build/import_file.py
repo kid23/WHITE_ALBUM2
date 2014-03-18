@@ -32,7 +32,16 @@ def import_dar(name, zipdata):
 			head = head[0:0x10+num*0x20] + buf + head[0x10+num*0x20+8:]
 			print "Import %d ok %d,%d -> %d,%d" % (num, size, zsize, file_uncomp_size, file_comp_size)
 		else:
-			print "Import %d error. %d < %d" % (num, zsize, entry.file_size - 4)
+			data = filezip.read(entry.filename)
+			file_comp_size = len(data) - 4
+			file_uncomp_size, = struct.unpack("1I", data[0:4])
+			fd.seek(0, 2)
+			new_offset=fd.tell()
+			fd.write(data[4:])
+			buf = struct.pack("LLQ", file_uncomp_size, file_comp_size, new_offset)
+			head = head[0:0x10+num*0x20] + buf + head[0x10+num*0x20+16:]
+			print "Add %d ok %d,%d -> %d,%d,0x%0x" % (num, size, zsize, file_uncomp_size, file_comp_size, new_offset)
+			#print "Import %d error. %d < %d" % (num, zsize, entry.file_size - 4)
 	filezip.close()
 	fd.seek(0,0)
 	fd.write(head)
