@@ -8,6 +8,8 @@ del "%DIR_TEMP%\pic\*.gtf"
 call convert_png2dds.bat "%DIR_TEMP%\pic" -rgb16 -maskffff 
 call convert_png2dds.bat "%DIR_TEMP%\pic\32" -rgb32 
 move /y "%DIR_TEMP%\pic\32\*.dds" "%DIR_TEMP%\pic\"
+call convert_png2dds.bat "%DIR_TEMP%\pic\8" -rgb8 
+move /y "%DIR_TEMP%\pic\8\*.dds" "%DIR_TEMP%\pic\"
 call convert_png2dds.bat "%DIR_TEMP%\pic\DXT5" -bc3 
 move /y "%DIR_TEMP%\pic\DXT5\*.dds" "%DIR_TEMP%\pic\"
 
@@ -23,4 +25,6 @@ for %%i in ("%DIR_TEMP%\pic\*.pkgdds") do (
 echo %%~ni
 move /y "%DIR_TEMP%\pic\%%~ni.pkgdds.elzma" "%DIR_OUTPUT%\dar\%%~ni.elzma"
 )
+
+del "%DIR_TEMP%\pic\*.gtf" 
 pause
