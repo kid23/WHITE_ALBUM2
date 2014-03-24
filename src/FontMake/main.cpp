@@ -11,7 +11,6 @@
 
 */
 
-#define UNICODE
 #include <windows.h>
 #include <gdiplus.h>
 //#include "resource.h"
@@ -27,10 +26,10 @@ using namespace Gdiplus;
 
 static vector<WCHAR> wa2_tbl;
 
-bool ReadTBL_U(char* name)
+bool ReadTBL_U(TCHAR* name)
 {
 	FILE* fp;
-	fopen_s(&fp, name, "r, ccs=UTF-16LE");
+	_wfopen_s(&fp, name, L"r, ccs=UTF-16LE");
 	if (!fp) { return false; }
 
 	int cnt = 0;
@@ -78,7 +77,7 @@ int GetEncoderClsid(const WCHAR* format, CLSID* pClsid)
    return -1;  // Failure
 }
 
-void Paint_WA2(WCHAR* fontname, WCHAR* filename, const int TextureWidth, const int TextureHeight, const int FontBlockWidth, const int FontBlockHeight, const Gdiplus::REAL FontSize)
+void Paint_WA2(Bitmap* pOrgBmp, WCHAR* fontname, WCHAR* filename, const int TextureWidth, const int TextureHeight, const int FontBlockWidth, const int FontBlockHeight, const Gdiplus::REAL FontSize, int chars = 0, bool isGradient = true)
 {
 	SolidBrush  solidBrush2(Color(255, 255, 255, 255));
 	SolidBrush  solidBrush3(Color(0xf0, 0, 0, 0));
@@ -89,55 +88,87 @@ void Paint_WA2(WCHAR* fontname, WCHAR* filename, const int TextureWidth, const i
 	FontFamily  fontFamilyAscii(L"Arial Narrow");
 	Font        fontAscii(&fontFamilyAscii, FontSize, FontStyleRegular, UnitPixel);
 
+	int height = (chars + wa2_tbl.size() + TextureWidth / FontBlockWidth - 1) / (TextureWidth / FontBlockWidth) * FontBlockHeight;
+	Bitmap *bitmap1;
+	if (height != TextureHeight)
+	{
+		bitmap1 = new Bitmap(TextureWidth, height);
+	}
+	else
+	{
+		bitmap1 = new Bitmap(TextureWidth, TextureHeight);
+	}
 
-	int num = 0;
-	vector<WCHAR>::const_iterator it = wa2_tbl.begin();
-	Bitmap bitmap1(TextureWidth, TextureHeight);
-	Graphics g1(&bitmap1);
-	g1.FillRectangle(&solidBrush3, 0, 0, TextureWidth, TextureHeight);
+	Graphics g1(bitmap1);
+	g1.FillRectangle(&solidBrush3, 0, 0, TextureWidth, height);
 	g1.SetSmoothingMode(SmoothingModeAntiAlias);
 	g1.SetInterpolationMode(InterpolationModeHighQualityBicubic);
 	g1.SetTextRenderingHint(TextRenderingHintAntiAlias);
+	int orgHeight = pOrgBmp->GetHeight();
+	if (pOrgBmp)
+	{
+		orgHeight = (chars + TextureWidth / FontBlockWidth - 1) / (TextureWidth / FontBlockWidth) * FontBlockHeight;
+		g1.DrawImage(pOrgBmp, 0, 0, pOrgBmp->GetWidth(), pOrgBmp->GetHeight());
+		g1.FillRectangle(&solidBrush3, 0, orgHeight, TextureWidth, height);
+	}
+
+
 	wprintf(L"begin\n");
 	StringFormat strformat;
 
 	{
 		float x = 0.0f;
 		float y = 0.0f;
-		for (int i = 0; i < TextureHeight / FontBlockHeight && it != wa2_tbl.end(); ++i)
+		if (chars)
 		{
-			for (int j = 0; j < TextureWidth / FontBlockWidth && it != wa2_tbl.end(); ++j, ++it, x += FontBlockWidth)
+			int left = (orgHeight / FontBlockHeight * TextureWidth / FontBlockWidth - chars);
+			if (left >= 0) { x = left * FontBlockWidth; y = orgHeight / FontBlockHeight * FontBlockHeight; }
+			else { x = TextureWidth - left*FontBlockWidth; y = orgHeight / FontBlockHeight * FontBlockHeight - FontBlockHeight; }
+		}
+		wprintf(L"size %d,%d(%d,%d)  %f,%f  %d+%d\n", TextureWidth, height, TextureWidth, orgHeight, x, y, chars, wa2_tbl.size());
+		//for (int i = 0; i < TextureHeight / FontBlockHeight && it != wa2_tbl.end(); ++i)
+		{
+			//for (int j = 0; j < TextureWidth / FontBlockWidth && it != wa2_tbl.end(); ++j, ++it, x += FontBlockWidth)
+			for (vector<WCHAR>::iterator it = wa2_tbl.begin(); it != wa2_tbl.end(); ++it)
 			{
 				wstring t(&(*it), 1);
 
 				if (*it <= L'}') 
 				{ 
-					GraphicsPath myPath;
-					myPath.AddString(t.c_str(), t.length(), &fontFamilyAscii, FontStyleRegular, FontSize, PointF(x, y), &strformat);
-					Pen pen(Color(43, 52, 59), 5);
-					pen.SetLineJoin(LineJoinRound);
-					g1.DrawPath(&pen, &myPath);
-					LinearGradientBrush brush(Gdiplus::Rect(x, y, FontBlockWidth, FontBlockWidth),
-						Color(255, 255, 255), Color(176, 224, 208), LinearGradientModeVertical);
-					g1.FillPath(&brush, &myPath);
-					//g1.DrawString(t.c_str(), -1, &fontAscii, PointF(x, y), &solidBrush2); 
+					if (isGradient)
+					{
+
+						GraphicsPath myPath;
+						myPath.AddString(t.c_str(), t.length(), &fontFamilyAscii, FontStyleRegular, FontSize, PointF(x, y), &strformat);
+						Pen pen(Color(43, 52, 59), 5);
+						pen.SetLineJoin(LineJoinRound);
+						g1.DrawPath(&pen, &myPath);
+						LinearGradientBrush brush(Gdiplus::Rect(x, y, FontBlockWidth, FontBlockWidth),
+							Color(255, 255, 255), Color(176, 224, 208), LinearGradientModeVertical);
+						g1.FillPath(&brush, &myPath);
+					}
+					else { g1.DrawString(t.c_str(), -1, &fontAscii, PointF(x, y), &solidBrush2); }
 				}
-				else 
-				{ 
-					GraphicsPath myPath;
-					myPath.AddString(t.c_str(), t.length(), &fontFamily1, FontStyleRegular, FontSize, PointF(x, y), &strformat);
-					Pen pen(Color(43, 52, 59), 6);
-					pen.SetLineJoin(LineJoinRound);
-					g1.DrawPath(&pen, &myPath);
-					LinearGradientBrush brush(Gdiplus::Rect(x, y, FontBlockWidth, FontBlockWidth),
-						Color(255, 255, 255), Color(176, 224, 208), LinearGradientModeVertical);
-					brush.SetBlendTriangularShape(0.9f, 1.5f);
-					g1.FillPath(&brush, &myPath);
-					//g1.DrawString(t.c_str(), -1, &font1, PointF(x, y), &solidBrush2); 
+				else
+				{
+					if (isGradient)
+					{
+						GraphicsPath myPath;
+						myPath.AddString(t.c_str(), t.length(), &fontFamily1, FontStyleRegular, FontSize, PointF(x, y), &strformat);
+						Pen pen(Color(43, 52, 59), 6);
+						pen.SetLineJoin(LineJoinRound);
+						g1.DrawPath(&pen, &myPath);
+						LinearGradientBrush brush(Gdiplus::Rect(x, y, FontBlockWidth, FontBlockWidth),
+							Color(255, 255, 255), Color(176, 224, 208), LinearGradientModeVertical);
+						brush.SetBlendTriangularShape(0.9f, 1.5f);
+						g1.FillPath(&brush, &myPath);
+					}
+					else { g1.DrawString(t.c_str(), -1, &font1, PointF(x, y), &solidBrush2); }
 				}
+				x += FontBlockWidth;
+				if (x >= TextureWidth) { x = 0.0f; y += FontBlockHeight; }
+				//printf("%f  %f\n", x, y);
 			}
-			y += FontBlockHeight;
-			x = 0.0f;
 		}
 		/*for (int i = 1; i<6; ++i)
 		{
@@ -152,16 +183,17 @@ void Paint_WA2(WCHAR* fontname, WCHAR* filename, const int TextureWidth, const i
 		//g1.FillPath(&solidBrush2, &myPath);
 
 	} 
-	if (it != wa2_tbl.end()) { wprintf(L"Make Font error. %d ok\n", it - wa2_tbl.begin()); }
+	//if (it != wa2_tbl.end()) { wprintf(L"Make Font error. %d ok\n", it - wa2_tbl.begin()); }
 	CLSID pngClsid;
 	GetEncoderClsid(L"image/png", &pngClsid);
-	bitmap1.Save(filename, &pngClsid);
-	wprintf(L"Make font %s ...\n", filename);
+	bitmap1->Save(filename, &pngClsid);
+	wprintf(L"Make font %s  chars:%d ...\n", filename, chars + wa2_tbl.size());
+	delete bitmap1;
 }
 
-void MakeFont_WA2(char* name1, char* name2, char* name3)
+void MakeFont_WA2(TCHAR* orgName1, TCHAR* tblName1, TCHAR* orgName2, TCHAR* tblName2, TCHAR* orgName3, TCHAR* tblName3)
 {
-	if (!ReadTBL_U(name1))
+	if (!ReadTBL_U(tblName1))
 	{
 		_wperror(L"Read TBL file error ");
 		return ;
@@ -172,7 +204,9 @@ void MakeFont_WA2(char* name1, char* name2, char* name3)
 
 	// Initialize GDI+.
 	GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
-	Paint_WA2(L"方正准圆_GBK", L"font1.png", 2040, 2160, 40, 40, 28);
+
+	Bitmap bmp1(orgName1);
+	Paint_WA2(&bmp1, L"方正准圆_GBK", L"font1.png", 2040, 2160, 40, 40, 28, 357);
 
 	/*if (!ReadTBL_U(name2))
 	{
@@ -183,29 +217,32 @@ void MakeFont_WA2(char* name1, char* name2, char* name3)
 	Paint_WA2(L"方正准圆_GBK", L"font2.png", 2040, 48, 24, 24, 10);*/
 
 
-	if (!ReadTBL_U(name3))
+	/*if (!ReadTBL_U(tblName3))
 	{
 		_wperror(L"Read TBL file error ");
 		return;
-	}
+	}*/
 
 	//wa2_tbl.erase(wa2_tbl.begin() + 4, wa2_tbl.begin() + 6);	//	"()"
-	Paint_WA2(L"方正准圆_GBK", L"font3.png", 2048, 352, 16, 16, 14);
-	GdiplusShutdown(gdiplusToken);
+	Bitmap bmp3(orgName3);
+	Paint_WA2(&bmp3, L"方正准圆_GBK", L"font3.png", 2048, 352, 16, 16, 14, 363, false);
+	//GdiplusShutdown(gdiplusToken);
 
 }
 
 int main(int argc, char* argv[])
 {
-	if (argc < 2)
+	if (argc < 8)
 	{
 		wprintf(L"Error argu.\n");
 		return -1;
 	}
 
-	if (!strcmp(argv[1], "-fwa2"))
+	LPWSTR* wargv = CommandLineToArgvW(GetCommandLineW(), &argc);
+
+	if (!wcscmp(wargv[1], L"-fwa2"))
 	{
-		MakeFont_WA2(argv[2], argv[3], argv[4]);
+		MakeFont_WA2(wargv[2], wargv[3], wargv[4], wargv[5], wargv[6], wargv[7]);
 	}
 
 	return 0;
