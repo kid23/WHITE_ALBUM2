@@ -8,6 +8,7 @@ import os
 import pylzma
 import struct
 import sys
+import codecs
 
 UNCOMP_BLOCK_SIZE = 0x10000
 EBOOT_OFFSET = 0x10000
@@ -170,6 +171,74 @@ def rebuild_eboot_file(buf, dir):
     else :
         print "Check ELF ok. %x <= %x" % (cur_pos, end_pos)
 
+def patch_eboot_font(buf, num, pngname):
+	FONT1_POS=0xfedf0
+	FONT1_SIZE=0x1524
+	FONT2_POS=0x100315
+	FONT2_SIZE=0xe0
+	PATCH_FONT_POS=0x120d00
+	buf[PATCH_FONT_POS:PATCH_FONT_POS+FONT1_SIZE]=buf[FONT1_POS:FONT1_POS+FONT1_SIZE]
+	pos=PATCH_FONT_POS+FONT1_SIZE
+	font_num=num-FONT1_SIZE/2
+	font_code=0xf043
+	tbl_buf=""
+	while font_num > 0 : 
+		if (font_code & 0xff) < 0x40 : 
+			font_code+=1
+			continue
+		buf[pos:pos+2]=struct.pack(">H", font_code)
+		tbl_buf+= "%x=\r\n" % font_code
+		font_code+=1
+		font_num-=1
+		pos+=2
+	codecs.open("template.tbl", "wb+", encoding="utf-16").write(unicode(tbl_buf,'cp932'))
+	print "Total charset %d, end %x" % (num, font_code)
+	
+	PATCH_FONT_SIZE_POS=0xca2a
+	opcode=struct.unpack(">H", buf[PATCH_FONT_SIZE_POS:PATCH_FONT_SIZE_POS+2])[0]
+	if opcode != 0xa92 :
+		print "Bad elf."
+		return
+	buf[PATCH_FONT_SIZE_POS:PATCH_FONT_SIZE_POS+2]=struct.pack(">H", num)
+	print "patch font size to %d" % (num)
+	
+	PATCH_FONT_ADDRESS=0xcaa4
+	if buf[PATCH_FONT_ADDRESS:PATCH_FONT_ADDRESS+8] != "\x3C\x60\x00\x11\x30\x63\xED\xF0" :
+		print "Bad elf."
+		return
+	buf[PATCH_FONT_ADDRESS:PATCH_FONT_ADDRESS+8]="\x3C\x60\x00\x13\x30\x63\x0D\x00"
+	print "patch font address to %x" % (PATCH_FONT_POS)
+
+	LOAD_POS=0x64
+	LOAD_NEW_SIZE=0x12B000
+	opcode=struct.unpack(">I", buf[LOAD_POS:LOAD_POS+4])[0]
+	if opcode != 0x120CE8 :
+		print "Wrong elf load size."
+		return
+	buf[LOAD_POS:LOAD_POS+4]=struct.pack(">I", LOAD_NEW_SIZE)
+	buf[LOAD_POS+8:LOAD_POS+12]=struct.pack(">I", LOAD_NEW_SIZE)
+	print "patch load size to 0x%x" % LOAD_NEW_SIZE
+	
+	SECTION_POS=0x6ccc2c
+	SECTION_NEW_SIZE=0xA358
+	opcode=struct.unpack(">I", buf[SECTION_POS:SECTION_POS+4])[0]
+	if opcode != 0x40 :
+		print "Wrong elf section size."
+		return
+	buf[SECTION_POS:SECTION_POS+4]=struct.pack(">I", SECTION_NEW_SIZE)
+	print "patch section size to 0x%x" % SECTION_NEW_SIZE
+
+	png_data=open(pngname,"rb").read()
+	png_size=len(png_data)-4
+	PNG_WARNING_POS=0x660040
+	PNG_WARNING_SIZE=0x2BA00
+	if png_size > PNG_WARNING_SIZE :
+		print "Wrong png size. %d > %d" % (png_size, PNG_WARNING_SIZE)
+		return
+	buf[PNG_WARNING_POS:PNG_WARNING_POS+png_size]=png_data[4:]
+	print "patch wanring.png"
+		
+	
 def extract(buf, outputdir):
     pos = WA2_EBOOT101_INDEX
     while True:
@@ -212,6 +281,11 @@ if __name__ == "__main__":
         fd2 = os.open(sys.argv[2], os.O_RDWR)
         buf2 = mmap.mmap(fd2, size, access=mmap.ACCESS_WRITE)
         rebuild_eboot_file(buf2, sys.argv[3])
+        os.close(fd2)
+    elif sys.argv[1] == '-patch':
+        fd2 = os.open(sys.argv[2], os.O_RDWR)
+        buf2 = mmap.mmap(fd2, size, access=mmap.ACCESS_WRITE)
+        patch_eboot_font(buf2, int(sys.argv[3]), sys.argv[4])
         os.close(fd2)
     elif sys.argv[1] == '-d':
         decompress(buf, 0, size, sys.argv[3], 1)

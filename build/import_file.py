@@ -70,6 +70,36 @@ def import_pkgdds(name):
 		cnt += 1
 	fd.close()
 
+def make_pkgdds(name):
+	fd = open(name,"rb")
+	head = fd.read(16)
+	num = struct.unpack("I", head[0:4])[0]
+	index = fd.read(num * 16)
+	cnt = 0
+	data = ""
+	newindex = ""
+	pos = fd.tell()
+	while cnt < num :
+		offset, size = struct.unpack("LL", index[cnt*16:cnt*16+8])
+		gtfname = "%s_%03d.gtf" % (name, cnt)
+		if os.path.isfile(gtfname) :
+			data += open(gtfname, "rb").read()
+			print "make new %s ok" % gtfname
+		else :
+			fd.seek(offset)
+			data += fd.read(size)
+			print "import orignal %s ok" % gtfname
+		newindex += struct.pack("LL", pos, len(data))
+		newindex += index[cnt*16+8:cnt*16+16] 
+		pos += len(data)
+		cnt += 1
+	fd.close()
+	wd = open(name,"wb+")
+	wd.write(head)
+	wd.write(newindex)
+	wd.write(data)
+	wd.close()
+
 def fix_savedata(dir):
     if (not os.path.isdir(dir) or not os.path.isfile(dir+"/SYS.BIN") ): 
         ErrorMessageBox("Ä¿Â¼´íÎó")
@@ -147,6 +177,8 @@ if __name__ == "__main__":
 
     if sys.argv[1] == '-ip':
         import_pkgdds(sys.argv[2])
+    elif sys.argv[1] == '-mp':
+        make_pkgdds(sys.argv[2])
     elif sys.argv[1] == '-id' and len(sys.argv) > 3 :
         import_dar(sys.argv[2], StringIO.StringIO(open(sys.argv[3], "rb").read()))
     elif sys.argv[1] == '-fix':

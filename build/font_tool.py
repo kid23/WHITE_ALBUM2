@@ -9,7 +9,7 @@ import codecs
 from sets import Set
 
 YINFU_UNICODE = u'\u266a' # 81f4 jap music char
-
+DOT_UNICODE = u'\u30FB' # use 8145 as chinese dot char
 
 def convert2unicode(buf, size, name):
     out = codecs.open(name, "wb+", encoding="utf-16")
@@ -19,6 +19,7 @@ def convert2unicode(buf, size, name):
 def load_tbl(name):
     TBL={}
     tbl_file = codecs.open(name, "r", encoding="utf-16")
+    hex_data = ""
     alllines = tbl_file.readlines()
     for eachline in alllines:
         if eachline[0] > u'7' :
@@ -26,13 +27,16 @@ def load_tbl(name):
             char = eachline[5:6]
             c = int(code, 16)
             TBL[char] = c
+            hex_data += struct.pack(">H", c)
         else :
             code = eachline[0:2]
             char = eachline[3:4]
             c = int(code, 16)
             TBL[char] = c
+            hex_data += struct.pack("BB", c, 0x20)
     tbl_file.close()
     print "Load %d char." % len(TBL)
+    open(name+".bin", "wb+").write(hex_data)
     return TBL
 
 def load_tbl2(name):
@@ -170,6 +174,27 @@ def make_tbl(buf, size, name):
     cur = 0
     tbl_file = codecs.open(name + ".tbl", "wb+", encoding="utf-16")
     txt_file = codecs.open(name + ".txt", "wb+", encoding="utf-16")
+    cnt = 0
+    while cur < size :
+        t1 = struct.unpack("<B", buf[cur:cur+1])
+        t2 = struct.unpack("<B", buf[cur+1:cur+2])
+        if (t1[0] < 0x80) :
+            code = "%x=%c\r\n" % (t1[0], buf[cur:cur+1])
+            txt = buf[cur:cur+1]
+        else:
+            code = "%x%x=%s\r\n" % (t1[0], t2[0], buf[cur:cur+2])
+            txt = buf[cur:cur+2]
+        tbl_file.write(unicode(code,'cp932'))
+        txt_file.write(unicode(txt,'cp932'))
+        cur += 2
+        cnt += 1
+    tbl_file.close()
+    txt_file.close()
+    print "Total %d char." % cnt
+
+def make_tbl_hexcode(buf, size, name):
+    cur = 0
+    bin_file = open(name + ".bin", "wb+")
     cnt = 0
     while cur < size :
         t1 = struct.unpack("<B", buf[cur:cur+1])
@@ -337,7 +362,7 @@ if __name__ == "__main__":
     #buf = mmap.mmap(fd, size, prot=mmap.PROT_READ)
     buf = mmap.mmap(fd, size, access=mmap.ACCESS_READ)
     if sys.argv[1] == '-m':
-        make_tbl(buf, size, sys.argv[3])
+        make_tbl(buf, size, sys.argv[3])	#create tbl from charsets in txt file
     elif sys.argv[1] == '-c':
         convert2unicode(buf, size, sys.argv[3])
     elif sys.argv[1] == '-e':	#-e eboot.elf file.tbl
