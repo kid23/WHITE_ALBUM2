@@ -258,11 +258,33 @@ def make_tbl_hexcode(buf, size, name):
 def exclude_tbl(name1, name2):
     TBL1=load_tbl2(name1)
     TBL2=load_tbl2(name2)
-    print len(TBL1)
+    print "Before %d" % len(TBL1)
     for key in TBL2.keys() :
     	if not TBL1.has_key(key) : print "Not found %x" % key
     	else: del TBL1[key]
-    print len(TBL1)
+    print "After %d" %  len(TBL1)
+    x=sorted(TBL1.iteritems(), key=lambda d:d[0])
+    data=""
+    for key in x :
+    	data+= "%x=%c\r\n" % (key[0], key[1])
+    codecs.open("left.tbl", "w+", encoding="utf-16").write(data)
+
+def combine_tbl(name1, name2):
+    TBL1=load_tbl2(name1)
+    TBL2=load_tbl2(name2)
+    print "Before %d, %d" % (len(TBL1), len(TBL2))
+    for key in TBL2.keys() :
+    	if TBL1.has_key(key) : print "Confilt %x" % key
+    	else: TBL1[key]=TBL2[key]
+    print "After %d" %  len(TBL1)
+    x=sorted(TBL1.iteritems(), key=lambda d:d[0])
+    data=""
+    bintxt=""
+    for key in x :
+    	data+= "%x=%c\r\n" % (key[0], key[1])
+    	bintxt+=key[1]
+    codecs.open("combine.tbl", "w+", encoding="utf-16").write(data)
+    codecs.open("combine.bin.txt", "w+", encoding="utf-16").write(bintxt)
     
 def skip_char(buf, TBL):
     cur = 0
@@ -406,6 +428,9 @@ if __name__ == "__main__":
         sys.exit(0)
     elif sys.argv[1] == '-et':
         exclude_tbl(sys.argv[2], sys.argv[3])
+        sys.exit(0)
+    elif sys.argv[1] == '-ct':
+        combine_tbl(sys.argv[2], sys.argv[3])
         sys.exit(0)
     elif sys.argv[1] == '-m3':
         make_dds3(sys.argv[2], sys.argv[3])
