@@ -171,11 +171,9 @@ def rebuild_eboot_file(buf, dir):
     else :
         print "Check ELF ok. %x <= %x" % (cur_pos, end_pos)
 
-def patch_eboot_font(buf, num, pngname):
+def patch_eboot_font(buf, num, buf2, num2, pngname):
 	FONT1_POS=0xfedf0
 	FONT1_SIZE=0x1524
-	FONT2_POS=0x100315
-	FONT2_SIZE=0xe0
 	PATCH_FONT_POS=0x120d00
 	buf[PATCH_FONT_POS:PATCH_FONT_POS+FONT1_SIZE]=buf[FONT1_POS:FONT1_POS+FONT1_SIZE]
 	pos=PATCH_FONT_POS+FONT1_SIZE
@@ -191,7 +189,7 @@ def patch_eboot_font(buf, num, pngname):
 		font_code+=1
 		font_num-=1
 		pos+=2
-	codecs.open("template.tbl", "wb+", encoding="utf-16").write(unicode(tbl_buf,'cp932'))
+	#codecs.open("template.tbl", "wb+", encoding="utf-16").write(unicode(tbl_buf,'cp932'))
 	print "Total charset %d, end %x" % (num, font_code)
 	
 	PATCH_FONT_SIZE_POS=0xca2a
@@ -208,6 +206,23 @@ def patch_eboot_font(buf, num, pngname):
 		return
 	buf[PATCH_FONT_ADDRESS:PATCH_FONT_ADDRESS+8]="\x3C\x60\x00\x13\x30\x63\x0D\x00"
 	print "patch font address to %x" % (PATCH_FONT_POS)
+
+	PATCH_FONT_SIZE_POS2=0xca12
+	opcode=struct.unpack(">H", buf[PATCH_FONT_SIZE_POS2:PATCH_FONT_SIZE_POS2+2])[0]
+	if opcode != 0x70 :
+		print "Bad elf."
+		return
+	buf[PATCH_FONT_SIZE_POS2:PATCH_FONT_SIZE_POS2+2]=struct.pack(">H", num2)
+	print "patch font2 size to %d" % (num2)
+	
+	PATCH_FONT_ADDRESS2=0xcba0
+	PATCH_FONT_POS2=0x122c00
+	if buf[PATCH_FONT_ADDRESS2:PATCH_FONT_ADDRESS2+8] != "\x3C\x60\x00\x11\x30\x63\x03\x15" :
+		print "Bad elf."
+		return
+	buf[PATCH_FONT_ADDRESS2:PATCH_FONT_ADDRESS2+8]="\x3C\x60\x00\x13\x30\x63\x2c\x00"
+	print "patch font2 address to %x" % (PATCH_FONT_POS2)
+	buf[PATCH_FONT_POS2:PATCH_FONT_POS2+len(buf2)]=buf2
 
 	LOAD_POS=0x64
 	LOAD_NEW_SIZE=0x12B000
@@ -285,7 +300,7 @@ if __name__ == "__main__":
     elif sys.argv[1] == '-patch':
         fd2 = os.open(sys.argv[2], os.O_RDWR)
         buf2 = mmap.mmap(fd2, size, access=mmap.ACCESS_WRITE)
-        patch_eboot_font(buf2, int(sys.argv[3]), sys.argv[4])
+        patch_eboot_font(buf2, int(sys.argv[3]), open(sys.argv[4], "rb").read(), int(sys.argv[5]), sys.argv[6])
         os.close(fd2)
     elif sys.argv[1] == '-d':
         decompress(buf, 0, size, sys.argv[3], 1)

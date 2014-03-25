@@ -6,6 +6,7 @@ import os
 import struct
 import sys
 import codecs
+import string
 from sets import Set
 
 YINFU_UNICODE = u'\u266a' # 81f4 jap music char
@@ -36,7 +37,7 @@ def load_tbl(name):
             hex_data += struct.pack("BB", c, 0x20)
     tbl_file.close()
     print "Load %d char." % len(TBL)
-    open(name+".bin", "wb+").write(hex_data)
+    #open(name+".bin", "wb+").write(hex_data)
     return TBL
 
 def load_tbl2(name):
@@ -58,7 +59,48 @@ def load_tbl2(name):
     print "Load %d char." % len(TBL)
     return TBL
 
-def replace_zhuyin_txt(txt,TBL_UP):	#<R...|...>
+def build_mini_font_tbl(txtname,tblname,name,blank):
+	TBL=load_tbl(tblname)
+	TBL2=load_tbl2(tblname)
+	txt = codecs.open(txtname, "rb", encoding="utf-16").read()
+	mini_tbl = Set()
+	cur = 0
+	#while cur < len(txt) :
+	for char in txt :
+		char = txt[cur:cur+1]
+		if (TBL.has_key(char)) :
+			mini_tbl.add(TBL[char])
+			print char, 
+		else :
+			print "Bad charset %d" % char
+			return
+		cur+=1
+	x=sorted(mini_tbl)
+	mini_font_tbl=""
+	mini_font_data=""
+	mini_font_bin=""
+	first_code=0
+	mini_font_bin_pre=""
+	for val in x :
+		print "%x" % val,
+		#mini_font_tbl += "%x=%c\r\n" % (val, TBL2[val])
+		mini_font_data += TBL2[val]
+		if first_code == 0 :
+			first_code = val
+			if blank :
+				for i in xrange (val-12, val) :
+					mini_font_bin_pre += struct.pack(">HBB", i, 0, 0)
+		if blank :
+			mini_font_bin += struct.pack(">HBB", val, 0, 0)
+		else :
+			mini_font_bin += struct.pack(">H", val)
+	#codecs.open(name+"_sorted.tbl", "wb+", encoding="utf-16").write(mini_font_tbl)
+	codecs.open(name+"_sorted.txt", "wb+", encoding="utf-16").write(mini_font_data)
+	if blank :
+		mini_font_bin+="\x00\x00\x00\x00"
+	open(name+"_sorted.bin", "wb+").write(mini_font_bin_pre+mini_font_bin)
+
+def replace_zhuyin_txt(txt,TBL):	#<R...|...>
 	nt=""
 	cur=0
 	print txt
@@ -68,15 +110,15 @@ def replace_zhuyin_txt(txt,TBL_UP):	#<R...|...>
 			char = unicode(txt[cur:cur+2],'cp936')
 			if char == u'\u4f93' : 
 				char = YINFU_UNICODE
-			if TBL_UP.has_key(char) :
-				nt += struct.pack(">H", TBL_UP[char])
+			if TBL.has_key(char) :
+				nt += struct.pack(">H", TBL[char])
 			else :
-				nt += struct.pack(">H", TBL_UP[u'\u3000'])
+				nt += struct.pack(">H", TBL[u'\u3000'])
 			cur += 2
 		else :
 			char = unicode(txt[cur:cur+1],'cp936')
-			if (TBL_UP.has_key(char)) :
-				nt += struct.pack("B", TBL_UP[char])
+			if (TBL.has_key(char)) :
+				nt += struct.pack("B", TBL[char])
 			else :
 				nt += txt[cur:cur+1]
 			cur += 1
@@ -112,7 +154,7 @@ def replace_txt(txtname,TBL,TBL_UP,MISSED):
                     if (char == u'|'):	#<R...|...>
                         pos = txt.find(">", cur+1)
                         if (pos > cur):
-                            zhuyin_txt = replace_zhuyin_txt(txt[cur+1:pos],TBL_UP)
+                            zhuyin_txt = replace_zhuyin_txt(txt[cur+1:pos],TBL)
                             nt += txt[cur:cur+1] + zhuyin_txt +">"
                             cur = pos+1
                             continue
@@ -213,6 +255,15 @@ def make_tbl_hexcode(buf, size, name):
     txt_file.close()
     print "Total %d char." % cnt
 
+def exclude_tbl(name1, name2):
+    TBL1=load_tbl2(name1)
+    TBL2=load_tbl2(name2)
+    print len(TBL1)
+    for key in TBL2.keys() :
+    	if not TBL1.has_key(key) : print "Not found %x" % key
+    	else: del TBL1[key]
+    print len(TBL1)
+    
 def skip_char(buf, TBL):
     cur = 0
     while cur < len(buf) :
@@ -353,8 +404,14 @@ if __name__ == "__main__":
     elif sys.argv[1] == '-e3':
         extract_dds3(sys.argv[2])
         sys.exit(0)
+    elif sys.argv[1] == '-et':
+        exclude_tbl(sys.argv[2], sys.argv[3])
+        sys.exit(0)
     elif sys.argv[1] == '-m3':
         make_dds3(sys.argv[2], sys.argv[3])
+        sys.exit(0)
+    elif sys.argv[1] == '-mm':
+        build_mini_font_tbl(sys.argv[2], sys.argv[3], sys.argv[4], string.atoi(sys.argv[5]))
         sys.exit(0)
         
     fd = os.open(sys.argv[2], os.O_RDONLY)

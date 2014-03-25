@@ -90,7 +90,7 @@ void Paint_WA2(Bitmap* pOrgBmp, WCHAR* fontname, WCHAR* filename, const int Text
 
 	int height = (chars + wa2_tbl.size() + TextureWidth / FontBlockWidth - 1) / (TextureWidth / FontBlockWidth) * FontBlockHeight;
 	Bitmap *bitmap1;
-	if (height != TextureHeight)
+	if (height > TextureHeight)
 	{
 		bitmap1 = new Bitmap(TextureWidth, height);
 	}
@@ -100,17 +100,18 @@ void Paint_WA2(Bitmap* pOrgBmp, WCHAR* fontname, WCHAR* filename, const int Text
 	}
 
 	Graphics g1(bitmap1);
-	g1.FillRectangle(&solidBrush3, 0, 0, TextureWidth, height);
+	g1.FillRectangle(&solidBrush3, 0, 0, TextureWidth, height > TextureHeight ? height : TextureHeight);
 	g1.SetSmoothingMode(SmoothingModeAntiAlias);
 	g1.SetInterpolationMode(InterpolationModeHighQualityBicubic);
 	g1.SetTextRenderingHint(TextRenderingHintAntiAlias);
-	int orgHeight = pOrgBmp->GetHeight();
+	int orgHeight = TextureHeight;
 	if (pOrgBmp)
 	{
 		orgHeight = (chars + TextureWidth / FontBlockWidth - 1) / (TextureWidth / FontBlockWidth) * FontBlockHeight;
 		g1.DrawImage(pOrgBmp, 0, 0, pOrgBmp->GetWidth(), pOrgBmp->GetHeight());
 		g1.FillRectangle(&solidBrush3, 0, orgHeight, TextureWidth, height);
 	}
+
 
 
 	wprintf(L"begin\n");
@@ -208,13 +209,12 @@ void MakeFont_WA2(TCHAR* orgName1, TCHAR* tblName1, TCHAR* orgName2, TCHAR* tblN
 	Bitmap bmp1(orgName1);
 	Paint_WA2(&bmp1, L"方正准圆_GBK", L"font1.png", 2040, 2160, 40, 40, 28, 357);
 
-	/*if (!ReadTBL_U(name2))
+	if (!ReadTBL_U(tblName2))
 	{
 		_wperror(L"Read TBL file error ");
 		return;
 	}
-	//wa2_tbl.erase(wa2_tbl.begin() + 4, wa2_tbl.begin() + 6);	//	"()"
-	Paint_WA2(L"方正准圆_GBK", L"font2.png", 2040, 48, 24, 24, 10);*/
+	Paint_WA2(NULL, L"方正准圆_GBK", L"font2.png", 2040, 48, 24, 24, 14, 0, false);
 
 
 	/*if (!ReadTBL_U(tblName3))
@@ -224,8 +224,17 @@ void MakeFont_WA2(TCHAR* orgName1, TCHAR* tblName1, TCHAR* orgName2, TCHAR* tblN
 	}*/
 
 	//wa2_tbl.erase(wa2_tbl.begin() + 4, wa2_tbl.begin() + 6);	//	"()"
-	Bitmap bmp3(orgName3);
-	Paint_WA2(&bmp3, L"方正准圆_GBK", L"font3.png", 2048, 352, 16, 16, 14, 363, false);
+	//Bitmap bmp3(orgName3);
+	//Paint_WA2(&bmp3, L"方正准圆_GBK", L"font3.png", 2048, 352, 16, 16, 14, 363, false);
+
+
+	if (!ReadTBL_U(tblName3))
+	{
+		_wperror(L"Read TBL file error ");
+		return;
+	}
+	Paint_WA2(NULL, L"方正准圆_GBK", L"mini.png", 512, 128, 16, 16, 14, 0, false);
+
 	//GdiplusShutdown(gdiplusToken);
 
 }
