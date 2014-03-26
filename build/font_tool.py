@@ -59,7 +59,7 @@ def load_tbl2(name):
     print "Load %d char." % len(TBL)
     return TBL
 
-def build_mini_font_tbl(txtname,tblname,name,blank):
+def build_mini_font_tbl(txtname,tblname,name):
 	TBL=load_tbl(tblname)
 	TBL2=load_tbl2(tblname)
 	txt = codecs.open(txtname, "rb", encoding="utf-16").read()
@@ -78,25 +78,17 @@ def build_mini_font_tbl(txtname,tblname,name,blank):
 	mini_font_tbl=""
 	mini_font_data=""
 	mini_font_bin=""
-	first_code=0
 	mini_font_bin_pre=""
 	for val in x :
 		print "%x" % val,
 		#mini_font_tbl += "%x=%c\r\n" % (val, TBL2[val])
 		mini_font_data += TBL2[val]
-		if first_code == 0 :
-			first_code = val
-			if blank :
-				for i in xrange (val-12, val) :
-					mini_font_bin_pre += struct.pack(">HBB", i, 0, 0)
-		if blank :
-			mini_font_bin += struct.pack(">HBB", val, 0, 0)
+		if val < 0x80 :
+			mini_font_bin += struct.pack("BB", val, 0x20)
 		else :
 			mini_font_bin += struct.pack(">H", val)
 	#codecs.open(name+"_sorted.tbl", "wb+", encoding="utf-16").write(mini_font_tbl)
 	codecs.open(name+"_sorted.txt", "wb+", encoding="utf-16").write(mini_font_data)
-	if blank :
-		mini_font_bin+="\x00\x00\x00\x00"
 	open(name+"_sorted.bin", "wb+").write(mini_font_bin_pre+mini_font_bin)
 
 def replace_zhuyin_txt(txt,TBL):	#<R...|...>
@@ -435,7 +427,7 @@ if __name__ == "__main__":
         make_dds3(sys.argv[2], sys.argv[3])
         sys.exit(0)
     elif sys.argv[1] == '-mm':
-        build_mini_font_tbl(sys.argv[2], sys.argv[3], sys.argv[4], string.atoi(sys.argv[5]))
+        build_mini_font_tbl(sys.argv[2], sys.argv[3], sys.argv[4])
         sys.exit(0)
         
     fd = os.open(sys.argv[2], os.O_RDONLY)
