@@ -35,7 +35,7 @@ def compress(buf, size):
             block = buf[pos:pos+remain]
             pos += remain
             remain -= remain
-        dst = pylzma.compress(block, dictionary=14, eos=0)[5:]
+        dst = pylzma.compress(block, dictionary=23, fastBytes=273, eos=0)[5:]
         head += struct.pack("I8s", len(dst), "\x5d\x00\x40\x00\x00\x00\x00\x00")
         #out.write(head+dst)
         data += head+dst
