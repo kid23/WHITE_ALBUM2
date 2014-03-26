@@ -65,14 +65,13 @@ def build_mini_font_tbl(txtname,tblname,name,blank):
 	txt = codecs.open(txtname, "rb", encoding="utf-16").read()
 	mini_tbl = Set()
 	cur = 0
-	#while cur < len(txt) :
 	for char in txt :
 		char = txt[cur:cur+1]
 		if (TBL.has_key(char)) :
 			mini_tbl.add(TBL[char])
 			print char, 
 		else :
-			print "Bad charset %d" % char
+			print "Bad charset %c" % char
 			return
 		cur+=1
 	x=sorted(mini_tbl)
@@ -103,7 +102,7 @@ def build_mini_font_tbl(txtname,tblname,name,blank):
 def replace_zhuyin_txt(txt,TBL):	#<R...|...>
 	nt=""
 	cur=0
-	print txt
+	#print txt
 	while cur < len(txt) :
 		t1 = struct.unpack("<B", txt[cur:cur+1])
 		if t1[0] >= 0x80 :
@@ -114,6 +113,7 @@ def replace_zhuyin_txt(txt,TBL):	#<R...|...>
 				nt += struct.pack(">H", TBL[char])
 			else :
 				nt += struct.pack(">H", TBL[u'\u3000'])
+				print "Not found %c" % char
 			cur += 2
 		else :
 			char = unicode(txt[cur:cur+1],'cp936')
@@ -124,7 +124,7 @@ def replace_zhuyin_txt(txt,TBL):	#<R...|...>
 			cur += 1
 	return nt
 
-def replace_txt(txtname,TBL,TBL_UP,MISSED):
+def replace_txt(txtname,TBL,MISSED):
     alltxt = open(txtname,"rb").read().split(',')
     newtxt = ""
     left = 0
@@ -171,9 +171,8 @@ def replace_txt(txtname,TBL,TBL_UP,MISSED):
     else :
         print 'replace %s ok.' % (txtname)
 
-def batch_replace_txt(dir,name,name2):
+def batch_replace_txt(dir,name):
     TBL=load_tbl(name)
-    TBL_UP=load_tbl(name2)
     print u"blank=%x" % (TBL[u'\u3000'])
     if (not TBL.has_key(YINFU_UNICODE)) :
         print "Not found yinfu(81f4)"
@@ -183,7 +182,7 @@ def batch_replace_txt(dir,name,name2):
     for directory, subdirectories, files in os.walk(dir):
       for file in files:
         if file.endswith('.txt'):
-            replace_txt(os.path.join(directory, file), TBL, TBL_UP, MISSED)
+            replace_txt(os.path.join(directory, file), TBL, MISSED)
     for val in MISSED :
         print val,
 
@@ -418,7 +417,7 @@ if __name__ == "__main__":
         sys.exit(0)
 
     if sys.argv[1] == '-r':
-        batch_replace_txt(sys.argv[2], sys.argv[3], sys.argv[4])
+        batch_replace_txt(sys.argv[2], sys.argv[3])
         sys.exit(0)
     elif sys.argv[1] == '-mup':
         make_up_tbl(sys.argv[2], sys.argv[3])
