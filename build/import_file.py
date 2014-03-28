@@ -172,6 +172,7 @@ def ErrorMessageBox(str="参数调用错误          "):
     sys.exit(-1)
 
 if __name__ == "__main__":
+    print "WHITE ALBUM2 幸せの向こう側 PS3 Tool	By Kid\n"
     if len(sys.argv) < 2:
         ErrorMessageBox()
 
