@@ -36,7 +36,7 @@ setup(
     console = [{
         'script': 'import_file.py',
         'other_resources': [(1,1,data)],
-        #'icon_resources': [(1,'prog.ico')],
+        'icon_resources': [(1,'w6.ico')],
         },],
 )
 
