@@ -1,6 +1,8 @@
 WHITE ALBUM2 幸せの向こう側 PS3 汉化项目
 ============
 
+http://bbs.sumisora.org/read.php?tid=11059923
+
 ![](http://ck-gal.sumisora.org/image/wa2/wa2ps3_002.png)
 ![](http://ck-gal.sumisora.org/image/wa2/wa2ps3_003.png)
 ![](http://ck-gal.sumisora.org/image/wa2/wa2ps3_004.png)
@@ -8,6 +10,9 @@ WHITE ALBUM2 幸せの向こう側 PS3 汉化项目
 ![](http://ck-gal.sumisora.org/image/wa2/wa2ps3_006.png)
 ![](http://ck-gal.sumisora.org/image/wa2/wa2ps3_007.png)
 
+2014.5.2
+
+      完坑～啥都不说了，一起来虐吧～
 
 2014.3.27	
 
